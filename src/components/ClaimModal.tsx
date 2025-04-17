@@ -14,12 +14,19 @@ export function ClaimModal({ isOpen, onClose }: ClaimModalProps) {
   const { user, processClaim } = useAuth() as any;
   const [claimStatus, setClaimStatus] = useState<"waiting" | "success" | "already_claimed">("waiting");
   const [isTimerComplete, setIsTimerComplete] = useState(false);
+  const [claimImage, setClaimImage] = useState<string>("https://source.unsplash.com/random/1200x800/?drink,beverage");
   
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setClaimStatus("waiting");
       setIsTimerComplete(false);
+      
+      // Load the custom claim image if available
+      const savedClaimImage = localStorage.getItem("bottlecaps_claim_image");
+      if (savedClaimImage) {
+        setClaimImage(savedClaimImage);
+      }
     }
   }, [isOpen]);
   
@@ -57,10 +64,10 @@ export function ClaimModal({ isOpen, onClose }: ClaimModalProps) {
         )}
         {claimStatus === "waiting" && (
           <div className="flex flex-col items-center justify-center h-full w-full p-4">
-            {/* Placeholder ad image */}
+            {/* Ad image - now using the custom image */}
             <div className="relative flex-1 w-full max-h-[70vh] flex items-center justify-center mb-8 overflow-hidden">
               <img 
-                src="https://source.unsplash.com/random/1200x800/?drink,beverage" 
+                src={claimImage} 
                 alt="Daily Promotion" 
                 className="object-contain max-w-full max-h-full rounded-lg shadow-2xl"
               />

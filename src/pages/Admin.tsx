@@ -7,8 +7,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { BottleCap } from "@/components/BottleCap"; 
-import { Ban, LogOut, Users, ClipboardList, Shield, BarChart3, Settings, Award, AlertTriangle } from "lucide-react";
+import { BottleCap } from "@/components/BottleCap";
+import { 
+  Ban, LogOut, Users, ClipboardList, Shield, BarChart3, 
+  Settings, Award, AlertTriangle, Image, Upload, Calendar,
+  TrendingUp, UsersRound, ChartPie, Clock
+} from "lucide-react";
+import { toast } from "sonner";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
+  ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell
+} from 'recharts';
 
 export default function Admin() {
   const { user, logout, isAuthenticated, getAllUsers, getClaimLogs } = useAuth() as any;
@@ -17,6 +26,50 @@ export default function Admin() {
   const [blacklist, setBlacklist] = useState<string[]>([]);
   const [blacklistInput, setBlacklistInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [claimImage, setClaimImage] = useState<string>("https://source.unsplash.com/random/1200x800/?drink,beverage");
+  const [imageUrl, setImageUrl] = useState("");
+  
+  // Demo data for analytics charts
+  const [dailyClaimData, setDailyClaimData] = useState([
+    { name: 'Mon', claims: 24 },
+    { name: 'Tue', claims: 30 },
+    { name: 'Wed', claims: 27 },
+    { name: 'Thu', claims: 32 },
+    { name: 'Fri', claims: 38 },
+    { name: 'Sat', claims: 41 },
+    { name: 'Sun', claims: 35 },
+  ]);
+  
+  const [userGrowthData, setUserGrowthData] = useState([
+    { day: '4/10', users: 120 },
+    { day: '4/11', users: 132 },
+    { day: '4/12', users: 145 },
+    { day: '4/13', users: 160 },
+    { day: '4/14', users: 178 },
+    { day: '4/15', users: 193 },
+    { day: '4/16', users: 210 },
+  ]);
+  
+  const [streakDistributionData, setStreakDistributionData] = useState([
+    { name: '1 day', value: 45 },
+    { name: '2-3 days', value: 25 },
+    { name: '4-7 days', value: 15 },
+    { name: '1-2 weeks', value: 10 },
+    { name: '2+ weeks', value: 5 },
+  ]);
+  
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A569BD'];
+  
+  const [claimTimeData, setClaimTimeData] = useState([
+    { hour: '00:00', claims: 10 },
+    { hour: '03:00', claims: 5 },
+    { hour: '06:00', claims: 8 },
+    { hour: '09:00', claims: 30 },
+    { hour: '12:00', claims: 45 },
+    { hour: '15:00', claims: 38 },
+    { hour: '18:00', claims: 25 },
+    { hour: '21:00', claims: 15 },
+  ]);
   
   const navigate = useNavigate();
   
@@ -46,6 +99,12 @@ export default function Admin() {
       // Load blacklist
       const storedBlacklist = JSON.parse(localStorage.getItem("bottlecaps_blacklist") || "[]");
       setBlacklist(storedBlacklist);
+      
+      // Load saved claim image if exists
+      const savedClaimImage = localStorage.getItem("bottlecaps_claim_image");
+      if (savedClaimImage) {
+        setClaimImage(savedClaimImage);
+      }
     }
   }, [user, getAllUsers, getClaimLogs]);
   
@@ -94,6 +153,18 @@ export default function Admin() {
     if (blacklistInput.trim()) {
       addToBlacklist(blacklistInput.trim());
       setBlacklistInput("");
+    }
+  };
+  
+  // Update claim image
+  const updateClaimImage = () => {
+    if (imageUrl.trim()) {
+      setClaimImage(imageUrl);
+      localStorage.setItem("bottlecaps_claim_image", imageUrl);
+      toast.success("Claim image updated successfully");
+      setImageUrl("");
+    } else {
+      toast.error("Please enter a valid image URL");
     }
   };
   
@@ -199,7 +270,7 @@ export default function Admin() {
         </div>
         
         <Tabs defaultValue="users">
-          <TabsList className="grid w-full grid-cols-5 mb-8">
+          <TabsList className="grid w-full grid-cols-6 mb-8">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span>User Stats</span>
@@ -211,6 +282,10 @@ export default function Admin() {
             <TabsTrigger value="blacklist" className="flex items-center gap-2">
               <Ban className="h-4 w-4" />
               <span>Blacklist</span>
+            </TabsTrigger>
+            <TabsTrigger value="image" className="flex items-center gap-2">
+              <Image className="h-4 w-4" />
+              <span>Claim Image</span>
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
@@ -413,43 +488,171 @@ export default function Admin() {
             </Card>
           </TabsContent>
           
-          {/* Analytics Tab */}
+          {/* Image Management Tab - NEW */}
+          <TabsContent value="image">
+            <Card>
+              <CardHeader>
+                <CardTitle>Claim Image Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="font-medium mb-3">Current Claim Image</h3>
+                    <div className="border rounded-lg overflow-hidden mb-4">
+                      <img 
+                        src={claimImage} 
+                        alt="Current claim image" 
+                        className="w-full max-h-[300px] object-contain" 
+                      />
+                    </div>
+                    <p className="text-sm text-gray-500 mb-3">
+                      This image will be displayed to users during the claim process.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-medium mb-3">Update Image</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label htmlFor="imageUrl" className="text-sm font-medium">
+                          Image URL
+                        </label>
+                        <Input
+                          id="imageUrl"
+                          placeholder="Enter image URL..."
+                          value={imageUrl}
+                          onChange={(e) => setImageUrl(e.target.value)}
+                        />
+                        <p className="text-xs text-gray-500">
+                          Enter a full URL to an image (e.g., https://example.com/image.jpg)
+                        </p>
+                      </div>
+                      
+                      <Button 
+                        onClick={updateClaimImage}
+                        className="w-full"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Update Image
+                      </Button>
+                      
+                      <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                        <h4 className="font-medium text-blue-800 mb-1">Image Guidelines</h4>
+                        <ul className="list-disc list-inside text-sm text-blue-700 space-y-1">
+                          <li>Use high-quality images (recommended: 1200×800px)</li>
+                          <li>Ensure the image is relevant to your brand or promotion</li>
+                          <li>Use images that load quickly to avoid user frustration</li>
+                          <li>Consider using product images or promotional content</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Analytics Tab - UPDATED */}
           <TabsContent value="analytics">
             <Card>
               <CardHeader>
                 <CardTitle>Analytics Dashboard</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-6">
-                  <div className="flex items-center mb-2">
-                    <BarChart3 className="h-5 w-5 text-blue-600 mr-2" />
-                    <h3 className="font-semibold text-blue-800">Claim Metrics</h3>
-                  </div>
-                  <p className="text-sm text-blue-700">
-                    Analytics features will be available in an upcoming release. This section will include:
-                  </p>
-                  <ul className="list-disc pl-5 mt-2 text-sm text-blue-700 space-y-1">
-                    <li>Daily/weekly/monthly claim graphs</li>
-                    <li>User growth statistics</li>
-                    <li>Streak distribution data</li>
-                    <li>Claim time heatmap</li>
-                  </ul>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white p-4 rounded-lg border">
-                    <h3 className="font-medium mb-2">Coming Soon: Claim Distribution</h3>
-                    <div className="h-40 flex items-center justify-center bg-gray-50 rounded">
-                      <p className="text-gray-400 text-sm">Chart placeholder</p>
-                    </div>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Daily Claims Chart */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center">
+                        <Calendar className="h-5 w-5 text-blue-600 mr-2" />
+                        <CardTitle className="text-lg">Daily Claims</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={dailyClaimData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <RechartsTooltip />
+                          <Bar dataKey="claims" fill="#3b82f6" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
                   
-                  <div className="bg-white p-4 rounded-lg border">
-                    <h3 className="font-medium mb-2">Coming Soon: User Growth</h3>
-                    <div className="h-40 flex items-center justify-center bg-gray-50 rounded">
-                      <p className="text-gray-400 text-sm">Chart placeholder</p>
-                    </div>
-                  </div>
+                  {/* User Growth Chart */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center">
+                        <TrendingUp className="h-5 w-5 text-green-600 mr-2" />
+                        <CardTitle className="text-lg">User Growth</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={userGrowthData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="day" />
+                          <YAxis />
+                          <RechartsTooltip />
+                          <Line type="monotone" dataKey="users" stroke="#22c55e" strokeWidth={2} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Streak Distribution Chart */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center">
+                        <ChartPie className="h-5 w-5 text-purple-600 mr-2" />
+                        <CardTitle className="text-lg">Streak Distribution</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <PieChart margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                          <Pie
+                            data={streakDistributionData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={true}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          >
+                            {streakDistributionData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <RechartsTooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Claim Time Heatmap (represented as a bar chart for simplicity) */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center">
+                        <Clock className="h-5 w-5 text-amber-600 mr-2" />
+                        <CardTitle className="text-lg">Claim Time Distribution</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={claimTimeData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="hour" />
+                          <YAxis />
+                          <RechartsTooltip />
+                          <Bar dataKey="claims" fill="#f59e0b" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
                 </div>
               </CardContent>
             </Card>
