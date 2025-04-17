@@ -61,6 +61,14 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// BottleCaps theme colors
+				bottlecap: {
+					blue: '#2563EB',  // Primary brand color
+					gold: '#F59E0B',  // Reward/streak color
+					red: '#DC2626',   // Alert/timer color
+					navy: '#1E3A8A',  // Dark accent 
+					silver: '#9CA3AF', // Muted color
 				}
 			},
 			borderRadius: {
@@ -84,11 +92,32 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+				'pulse-scale': {
+					'0%, 100%': { transform: 'scale(1)' },
+					'50%': { transform: 'scale(1.05)' }
+				},
+				'spin-slow': {
+					'0%': { transform: 'rotate(0deg)' },
+					'100%': { transform: 'rotate(360deg)' }
+				},
+				'bounce-light': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-5px)' }
+				},
+				'progress': {
+					'0%': { width: '0%' },
+					'100%': { width: '100%' }
+				},
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse': 'pulse-scale 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+				'urgent-pulse': 'pulse-scale 0.75s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+				'spin-slow': 'spin-slow 3s linear infinite',
+				'bounce-light': 'bounce-light 1s ease-in-out infinite',
+				'progress': 'progress 30s linear forwards',
 			}
 		}
 	},
