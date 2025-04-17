@@ -1,10 +1,21 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User, AuthContextType } from "@/types/auth";
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Default admin credentials
 const ADMIN_USERNAME = "admin";
 const ADMIN_PASSWORD = "123";
+
+// Default user credentials for testing
+const TEST_USER_USERNAME = "123";
+const TEST_USER_PASSWORD = "123";
+
+// Initialize Supabase client
+const supabase: SupabaseClient = createClient(
+  import.meta.env.VITE_SUPABASE_URL || '',
+  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+);
 
 // Create the auth context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,22 +40,132 @@ export const isClaimAllowed = (lastClaimDate: string | null): boolean => {
   return lastClaimUTCDay !== nowUTCDay;
 };
 
+// Initialize Supabase tables if they don't exist
+const initializeSupabaseTables = async () => {
+  try {
+    // Check if users table exists and create if not
+    const { error: usersTableError } = await supabase.rpc('create_users_table_if_not_exists');
+    if (usersTableError) console.error('Error creating users table:', usersTableError);
+    
+    // Check if logs table exists and create if not
+    const { error: logsTableError } = await supabase.rpc('create_logs_table_if_not_exists');
+    if (logsTableError) console.error('Error creating logs table:', logsTableError);
+    
+    // Create initial admin and test user if not exists
+    await createInitialUsers();
+  } catch (error) {
+    console.error('Error initializing Supabase tables:', error);
+  }
+};
+
+// Create initial admin and test user accounts
+const createInitialUsers = async () => {
+  // Check if admin exists
+  const { data: adminExists } = await supabase
+    .from('users')
+    .select('id')
+    .eq('username', ADMIN_USERNAME)
+    .single();
+
+  // Create admin if not exists
+  if (!adminExists) {
+    await supabase.from('users').insert({
+      username: ADMIN_USERNAME,
+      password_hash: ADMIN_PASSWORD, // In production, use proper hashing
+      total_claims: 0,
+      streak: 0,
+      last_claim: null,
+      is_admin: true,
+      created_at: getCurrentUTCDate()
+    });
+  }
+  
+  // Check if test user exists
+  const { data: testUserExists } = await supabase
+    .from('users')
+    .select('id')
+    .eq('username', TEST_USER_USERNAME)
+    .single();
+
+  // Create test user if not exists
+  if (!testUserExists) {
+    await supabase.from('users').insert({
+      username: TEST_USER_USERNAME,
+      password_hash: TEST_USER_PASSWORD, // In production, use proper hashing
+      total_claims: 0,
+      streak: 0,
+      last_claim: null,
+      is_admin: false,
+      created_at: getCurrentUTCDate()
+    });
+  }
+};
+
 // Provider component
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Load user from localStorage on initial render
+  // Initialize Supabase tables on first load
   useEffect(() => {
+    // initializeSupabaseTables(); // Uncomment when SQL functions are created
+    
+    // For now, we'll use localStorage until SQL functions are set up
     const loadUser = () => {
       const storedUser = localStorage.getItem("bottlecaps_user");
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       }
+      
+      // Ensure the admin and test user accounts exist in localStorage
+      createLocalUsers();
+      
       setIsLoading(false);
     };
+    
     loadUser();
   }, []);
+
+  // Create local user storage (will be replaced by Supabase)
+  const createLocalUsers = () => {
+    const existingUsers = JSON.parse(localStorage.getItem("bottlecaps_users") || "[]");
+    let usersUpdated = false;
+    
+    // Check for admin account
+    const adminExists = existingUsers.some((u: User) => u.username === ADMIN_USERNAME);
+    if (!adminExists) {
+      existingUsers.push({
+        id: "admin-id",
+        username: ADMIN_USERNAME,
+        totalClaims: 0,
+        streak: 0,
+        lastClaim: null,
+        isAdmin: true,
+        createdAt: getCurrentUTCDate()
+      });
+      usersUpdated = true;
+    }
+    
+    // Check for test user account
+    const testUserExists = existingUsers.some((u: User) => u.username === TEST_USER_USERNAME);
+    if (!testUserExists) {
+      existingUsers.push({
+        id: Date.now().toString(),
+        username: TEST_USER_USERNAME,
+        totalClaims: 0,
+        streak: 0,
+        lastClaim: null,
+        isAdmin: false,
+        createdAt: getCurrentUTCDate()
+      });
+      usersUpdated = true;
+    }
+    
+    // Update localStorage if changes were made
+    if (usersUpdated) {
+      localStorage.setItem("bottlecaps_users", JSON.stringify(existingUsers));
+    }
+  };
 
   // Login function
   const login = async (username: string, password: string): Promise<void> => {
@@ -59,7 +180,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         totalClaims: 0,
         streak: 0,
         lastClaim: null,
-        isAdmin: true
+        isAdmin: true,
+        createdAt: getCurrentUTCDate()
       };
       
       setUser(adminUser);
@@ -84,7 +206,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         totalClaims: 0,
         streak: 0,
         lastClaim: null,
-        isAdmin: false
+        isAdmin: false,
+        createdAt: getCurrentUTCDate()
       };
       
       // Add user to users list

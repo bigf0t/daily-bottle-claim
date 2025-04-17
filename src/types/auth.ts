@@ -6,6 +6,7 @@ export interface User {
   streak: number;
   lastClaim: string | null;
   isAdmin: boolean;
+  createdAt?: string;
 }
 
 export interface AuthContextType {
@@ -14,4 +15,9 @@ export interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
+  processClaim?: () => "success" | "already_claimed" | undefined;
+  isClaimAllowed?: boolean;
+  getAllUsers?: () => User[];
+  getClaimLogs?: () => any[];
+  updateUserData?: (user: User) => void;
 }

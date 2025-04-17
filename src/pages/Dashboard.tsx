@@ -86,12 +86,12 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          
+      {/* Main content - New Layout */}
+      <main className="max-w-5xl mx-auto px-4 py-8 sm:px-6">
+        {/* User Profile and Stats Cards in a row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {/* User info card */}
-          <Card className="col-span-1 shadow-md">
+          <Card className="shadow-md">
             <CardHeader>
               <CardTitle>Your Account</CardTitle>
             </CardHeader>
@@ -112,7 +112,7 @@ export default function Dashboard() {
           </Card>
           
           {/* Stats card */}
-          <Card className="col-span-1 shadow-md">
+          <Card className="shadow-md">
             <CardHeader>
               <CardTitle>Your Stats</CardTitle>
             </CardHeader>
@@ -140,61 +140,59 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
-          
-          {/* Claim card */}
-          <Card className="col-span-1 shadow-md">
-            <CardHeader>
-              <CardTitle>Daily Claim</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center">
-              {isClaimAllowed ? (
-                <>
-                  <BottleCap size="lg" animated className="mb-4" />
-                  <p className="text-center mb-4">
-                    Your daily BottleCap is ready to claim!
-                  </p>
-                  <Button 
-                    size="lg"
-                    className="w-full bg-bottlecap-blue hover:bg-blue-600"
-                    onClick={() => setIsClaimModalOpen(true)}
-                  >
-                    Claim Now
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <BottleCap size="md" color="silver" className="mb-4 opacity-60" />
-                  <div className="text-center mb-4">
-                    <p className="text-gray-500 mb-2">
-                      You've already claimed today.
-                    </p>
-                    <p className="text-sm text-bottlecap-blue">
-                      Come back tomorrow for your next BottleCap!
-                    </p>
-                  </div>
-                  <Button 
-                    size="lg"
-                    variant="outline"
-                    className="w-full"
-                    disabled
-                  >
-                    Already Claimed
-                  </Button>
-                </>
-              )}
-              
-              {user.streak >= 7 && (
-                <div className="mt-6 flex items-center text-bottlecap-gold bg-amber-50 p-3 rounded-lg w-full">
-                  <Award className="w-8 h-8 mr-3" />
-                  <div>
-                    <p className="font-semibold">Consistent Claimer!</p>
-                    <p className="text-sm">You've maintained a {user.streak}-day streak.</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
+          
+        {/* Claim Section - Centered and Prominent */}
+        <div className="flex flex-col items-center justify-center mt-6 mb-12">
+          {isClaimAllowed ? (
+            <div className="text-center">
+              <BottleCap size="lg" animated className="mb-6 mx-auto" />
+              <p className="text-center mb-6 text-xl font-medium text-bottlecap-navy">
+                Your daily BottleCap is ready to claim!
+              </p>
+              <Button 
+                size="lg"
+                className="w-64 h-16 text-xl bg-bottlecap-blue hover:bg-blue-600 shadow-lg transition-all hover:scale-105"
+                onClick={() => setIsClaimModalOpen(true)}
+              >
+                Claim Now
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center">
+              <BottleCap size="md" color="silver" className="mb-6 mx-auto opacity-60" />
+              <div className="text-center mb-6">
+                <p className="text-gray-500 mb-2 text-xl">
+                  You've already claimed today.
+                </p>
+                <p className="text-sm text-bottlecap-blue">
+                  Come back tomorrow for your next BottleCap!
+                </p>
+              </div>
+              <Button 
+                size="lg"
+                variant="outline"
+                className="w-64 h-16 text-xl"
+                disabled
+              >
+                Already Claimed
+              </Button>
+            </div>
+          )}
+        </div>
+          
+        {/* Achievement badge - Optional */}
+        {user.streak >= 7 && (
+          <div className="max-w-lg mx-auto mt-8">
+            <div className="flex items-center text-bottlecap-gold bg-amber-50 p-4 rounded-lg shadow-sm">
+              <Award className="w-10 h-10 mr-4" />
+              <div>
+                <p className="font-semibold text-lg">Consistent Claimer!</p>
+                <p>You've maintained a {user.streak}-day streak. Keep it going!</p>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
       
       {/* Claim modal */}
