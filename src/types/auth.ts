@@ -21,3 +21,10 @@ export interface AuthContextType {
   getClaimLogs?: () => any[];
   updateUserData?: (user: User) => void;
 }
+
+export interface ClaimLog {
+  username: string;
+  result: string;
+  timestamp: string;
+  ip: string;
+}
