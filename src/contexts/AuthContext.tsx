@@ -12,9 +12,13 @@ const TEST_USER_USERNAME = "123";
 const TEST_USER_PASSWORD = "123";
 
 // Initialize Supabase client
+// Adding fallback values to prevent initialization errors
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-url.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
+
 const supabase: SupabaseClient = createClient(
-  import.meta.env.VITE_SUPABASE_URL || '',
-  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+  supabaseUrl,
+  supabaseAnonKey
 );
 
 // Create the auth context
