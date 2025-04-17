@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { BottleCap } from "@/components/BottleCap";
-import { LogIn } from "lucide-react";
+import { UserPlus } from "lucide-react";
 
-export default function Login() {
+export default function Register() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   
@@ -26,13 +27,19 @@ export default function Login() {
       return;
     }
     
+    if (password !== confirmPassword) {
+      setError("Passwords don't match");
+      return;
+    }
+    
     try {
       setIsLoading(true);
       setError("");
+      // For demo purposes, login also creates a user account if it doesn't exist
       await login(username, password);
       navigate("/dashboard");
     } catch (err) {
-      setError("Login failed. Please try again.");
+      setError("Registration failed. Please try again.");
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -49,9 +56,9 @@ export default function Login() {
       
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader>
-          <CardTitle>Sign In</CardTitle>
+          <CardTitle>Create Account</CardTitle>
           <CardDescription>
-            Enter your username to claim your daily BottleCap token.
+            Sign up to claim your daily BottleCap tokens.
           </CardDescription>
         </CardHeader>
         
@@ -62,7 +69,7 @@ export default function Login() {
               <Input
                 id="username"
                 type="text"
-                placeholder="Enter your username"
+                placeholder="Choose a username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
@@ -73,9 +80,20 @@ export default function Login() {
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter your password"
+                placeholder="Create a password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
                 For demo purposes, any password will work.
@@ -93,14 +111,14 @@ export default function Login() {
               className="w-full bg-bottlecap-blue hover:bg-blue-600"
               disabled={isLoading}
             >
-              <LogIn className="mr-2 h-4 w-4" />
-              {isLoading ? "Signing in..." : "Sign In"}
+              <UserPlus className="mr-2 h-4 w-4" />
+              {isLoading ? "Creating Account..." : "Create Account"}
             </Button>
             
             <div className="text-sm text-center">
-              Don't have an account?{" "}
-              <Link to="/register" className="text-bottlecap-blue font-medium hover:underline">
-                Create one
+              Already have an account?{" "}
+              <Link to="/login" className="text-bottlecap-blue font-medium hover:underline">
+                Sign in
               </Link>
             </div>
           </CardFooter>

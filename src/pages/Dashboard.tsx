@@ -15,12 +15,18 @@ export default function Dashboard() {
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
   const navigate = useNavigate();
   
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated or to admin if admin
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
+      return;
     }
-  }, [isAuthenticated, navigate]);
+    
+    // Redirect admin to admin panel
+    if (user?.isAdmin) {
+      navigate("/admin");
+    }
+  }, [isAuthenticated, user, navigate]);
   
   // Handle logout
   const handleLogout = () => {
@@ -42,9 +48,6 @@ export default function Dashboard() {
     });
   };
   
-  // Check if user is an admin
-  const isAdmin = user?.isAdmin;
-  
   // If still authenticating or no user, show loading
   if (!user) {
     return (
@@ -65,15 +68,6 @@ export default function Dashboard() {
           </div>
           
           <div className="flex items-center gap-4">
-            {isAdmin && (
-              <Button 
-                variant="outline" 
-                onClick={() => navigate("/admin")}
-              >
-                Admin Panel
-              </Button>
-            )}
-            
             <Button 
               variant="ghost" 
               className="text-gray-600" 

@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { BottleCap } from "@/components/BottleCap"; 
-import { Ban, LogOut, Users, ClipboardList, Shield } from "lucide-react";
+import { Ban, LogOut, Users, ClipboardList, Shield, BarChart3, Settings, Award, AlertTriangle } from "lucide-react";
 
 export default function Admin() {
   const { user, logout, isAuthenticated, getAllUsers, getClaimLogs } = useAuth() as any;
@@ -106,6 +106,11 @@ export default function Admin() {
     );
   }
   
+  // Calculate stats
+  const totalClaims = users.reduce((sum, user) => sum + user.totalClaims, 0);
+  const activeUsers = users.filter(user => user.lastClaim !== null).length;
+  const maxStreak = users.reduce((max, user) => (user.streak > max ? user.streak : max), 0);
+  
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100">
       {/* Header */}
@@ -121,13 +126,6 @@ export default function Admin() {
           
           <div className="flex items-center gap-4">
             <Button 
-              variant="outline" 
-              onClick={() => navigate("/dashboard")}
-            >
-              Dashboard
-            </Button>
-            
-            <Button 
               variant="ghost" 
               className="text-gray-600" 
               onClick={handleLogout}
@@ -141,8 +139,67 @@ export default function Admin() {
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6">
+        {/* Dashboard Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <Card className="bg-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Total Claims</p>
+                  <h3 className="text-3xl font-bold">{totalClaims}</h3>
+                </div>
+                <div className="p-3 bg-blue-50 rounded-full">
+                  <BottleCap size="sm" className="h-6 w-6" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Active Users</p>
+                  <h3 className="text-3xl font-bold">{activeUsers}</h3>
+                </div>
+                <div className="p-3 bg-green-50 rounded-full">
+                  <Users className="h-6 w-6 text-green-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Max Streak</p>
+                  <h3 className="text-3xl font-bold">{maxStreak}</h3>
+                </div>
+                <div className="p-3 bg-amber-50 rounded-full">
+                  <Award className="h-6 w-6 text-amber-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Blacklisted</p>
+                  <h3 className="text-3xl font-bold">{blacklist.length}</h3>
+                </div>
+                <div className="p-3 bg-red-50 rounded-full">
+                  <Ban className="h-6 w-6 text-red-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
         <Tabs defaultValue="users">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
+          <TabsList className="grid w-full grid-cols-5 mb-8">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span>User Stats</span>
@@ -154,6 +211,14 @@ export default function Admin() {
             <TabsTrigger value="blacklist" className="flex items-center gap-2">
               <Ban className="h-4 w-4" />
               <span>Blacklist</span>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span>Analytics</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              <span>Settings</span>
             </TabsTrigger>
           </TabsList>
           
@@ -180,6 +245,7 @@ export default function Admin() {
                         <TableHead>Total Claims</TableHead>
                         <TableHead>Streak</TableHead>
                         <TableHead>Last Claim</TableHead>
+                        <TableHead>Joined</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -191,6 +257,7 @@ export default function Admin() {
                             <TableCell>{user.totalClaims}</TableCell>
                             <TableCell>{user.streak}</TableCell>
                             <TableCell>{formatDate(user.lastClaim)}</TableCell>
+                            <TableCell>{formatDate(user.createdAt)}</TableCell>
                             <TableCell>
                               {blacklist.includes(user.username) ? (
                                 <Button 
@@ -214,7 +281,7 @@ export default function Admin() {
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-4 text-gray-500">
+                          <TableCell colSpan={6} className="text-center py-4 text-gray-500">
                             No users found
                           </TableCell>
                         </TableRow>
@@ -340,6 +407,131 @@ export default function Admin() {
                   </div>
                   <div className="mt-4 bg-white p-3 rounded border border-amber-200 text-sm">
                     <p className="text-gray-500 italic">No honeypot activations detected</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Analytics Tab */}
+          <TabsContent value="analytics">
+            <Card>
+              <CardHeader>
+                <CardTitle>Analytics Dashboard</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-6">
+                  <div className="flex items-center mb-2">
+                    <BarChart3 className="h-5 w-5 text-blue-600 mr-2" />
+                    <h3 className="font-semibold text-blue-800">Claim Metrics</h3>
+                  </div>
+                  <p className="text-sm text-blue-700">
+                    Analytics features will be available in an upcoming release. This section will include:
+                  </p>
+                  <ul className="list-disc pl-5 mt-2 text-sm text-blue-700 space-y-1">
+                    <li>Daily/weekly/monthly claim graphs</li>
+                    <li>User growth statistics</li>
+                    <li>Streak distribution data</li>
+                    <li>Claim time heatmap</li>
+                  </ul>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white p-4 rounded-lg border">
+                    <h3 className="font-medium mb-2">Coming Soon: Claim Distribution</h3>
+                    <div className="h-40 flex items-center justify-center bg-gray-50 rounded">
+                      <p className="text-gray-400 text-sm">Chart placeholder</p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white p-4 rounded-lg border">
+                    <h3 className="font-medium mb-2">Coming Soon: User Growth</h3>
+                    <div className="h-40 flex items-center justify-center bg-gray-50 rounded">
+                      <p className="text-gray-400 text-sm">Chart placeholder</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Settings Tab */}
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle>System Settings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 mb-6">
+                  <div className="flex items-start">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 mr-2" />
+                    <div>
+                      <h3 className="font-semibold text-amber-800">Coming Soon</h3>
+                      <p className="text-sm text-amber-700 mt-1">
+                        The settings section will be available in the next update.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-6">
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium mb-3">Claim Settings</h3>
+                    <div className="opacity-60 pointer-events-none">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="font-medium">Daily Reset Time</p>
+                          <p className="text-sm text-gray-500">When the daily claim resets</p>
+                        </div>
+                        <Input 
+                          type="time" 
+                          value="00:00" 
+                          className="w-32" 
+                          disabled 
+                        />
+                      </div>
+                      
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="font-medium">Streak Reset</p>
+                          <p className="text-sm text-gray-500">Reset streak if missed days</p>
+                        </div>
+                        <Input 
+                          type="number" 
+                          value="1" 
+                          min="1"
+                          className="w-32" 
+                          disabled 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium mb-3">Security Settings</h3>
+                    <div className="opacity-60 pointer-events-none">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="font-medium">Enable CAPTCHA</p>
+                          <p className="text-sm text-gray-500">Require CAPTCHA for claims</p>
+                        </div>
+                        <Button disabled>Disabled</Button>
+                      </div>
+                      
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="font-medium">IP Rate Limiting</p>
+                          <p className="text-sm text-gray-500">Max attempts per IP</p>
+                        </div>
+                        <Input 
+                          type="number" 
+                          value="10" 
+                          min="1"
+                          className="w-32" 
+                          disabled 
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
