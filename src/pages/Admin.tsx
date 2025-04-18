@@ -11,16 +11,18 @@ import { BottleCap } from "@/components/BottleCap";
 import { 
   Ban, LogOut, Users, ClipboardList, Shield, BarChart3, 
   Settings, Award, AlertTriangle, Image, Upload, Calendar,
-  TrendingUp, UsersRound, ChartPie, Clock
+  TrendingUp, UsersRound, ChartPie, Clock, MailCheck, Mail, MailPlus
 } from "lucide-react";
 import { toast } from "sonner";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
   ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell
 } from 'recharts';
+import { useAuth as useAuthType } from "@/contexts/AuthContext";
 
 export default function Admin() {
-  const { user, logout, isAuthenticated, getAllUsers, getClaimLogs } = useAuth() as any;
+  const { user, logout, isAuthenticated, getAllUsers, getClaimLogs, 
+          passwordResetRequests, confirmPasswordResetRequest } = useAuth() as useAuthType;
   const [users, setUsers] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [blacklist, setBlacklist] = useState<string[]>([]);
@@ -28,7 +30,10 @@ export default function Admin() {
   const [searchTerm, setSearchTerm] = useState("");
   const [claimImage, setClaimImage] = useState<string>("https://source.unsplash.com/random/1200x800/?drink,beverage");
   const [imageUrl, setImageUrl] = useState("");
-  
+
+  // New state for managing password reset request approval notes
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+
   // Demo data for analytics charts
   const [dailyClaimData, setDailyClaimData] = useState([
     { name: 'Mon', claims: 24 },
@@ -88,19 +93,16 @@ export default function Admin() {
   // Load data on mount
   useEffect(() => {
     if (user?.isAdmin) {
-      // Load users
+      
       const allUsers = getAllUsers();
       setUsers(allUsers);
       
-      // Load logs
       const allLogs = getClaimLogs();
       setLogs(allLogs);
       
-      // Load blacklist
       const storedBlacklist = JSON.parse(localStorage.getItem("bottlecaps_blacklist") || "[]");
       setBlacklist(storedBlacklist);
       
-      // Load saved claim image if exists
       const savedClaimImage = localStorage.getItem("bottlecaps_claim_image");
       if (savedClaimImage) {
         setClaimImage(savedClaimImage);
@@ -122,7 +124,6 @@ export default function Admin() {
   // Format date in a readable way
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Never";
-    
     const date = new Date(dateString);
     return date.toLocaleString('en-US', { 
       month: 'short', 
@@ -135,6 +136,7 @@ export default function Admin() {
   
   // Add user to blacklist
   const addToBlacklist = (username: string) => {
+    if(blacklist.includes(username)) return;
     const newBlacklist = [...blacklist, username];
     setBlacklist(newBlacklist);
     localStorage.setItem("bottlecaps_blacklist", JSON.stringify(newBlacklist));
@@ -167,7 +169,13 @@ export default function Admin() {
       toast.error("Please enter a valid image URL");
     }
   };
-  
+
+  // Approve password reset request from admin panel
+  const handleApprovePasswordReset = (id: string) => {
+    confirmPasswordResetRequest(id);
+    toast.success("Password reset request approved. Please contact the user.");
+  };
+
   // If not admin or still loading, show placeholder
   if (!user?.isAdmin) {
     return (
@@ -176,12 +184,11 @@ export default function Admin() {
       </div>
     );
   }
-  
-  // Calculate stats
+
   const totalClaims = users.reduce((sum, user) => sum + user.totalClaims, 0);
   const activeUsers = users.filter(user => user.lastClaim !== null).length;
   const maxStreak = users.reduce((max, user) => (user.streak > max ? user.streak : max), 0);
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100">
       {/* Header */}
@@ -290,6 +297,10 @@ export default function Admin() {
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               <span>Analytics</span>
+            </TabsTrigger>
+            <TabsTrigger value="passwordReset" className="flex items-center gap-2">
+              <MailCheck className="h-4 w-4" />
+              <span>Password Reset Requests</span>
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
@@ -488,7 +499,7 @@ export default function Admin() {
             </Card>
           </TabsContent>
           
-          {/* Image Management Tab - NEW */}
+          {/* Image Management Tab */}
           <TabsContent value="image">
             <Card>
               <CardHeader>
@@ -551,15 +562,26 @@ export default function Admin() {
               </CardContent>
             </Card>
           </TabsContent>
-          
-          {/* Analytics Tab - UPDATED */}
+
+          {/* Analytics Tab */}
           <TabsContent value="analytics">
             <Card>
               <CardHeader>
-                <CardTitle>Analytics Dashboard</CardTitle>
+                <CardTitle>Claim Metrics / Analytics</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <p className="mb-4 text-gray-700 font-medium">
+                  Analytics features will be available in an upcoming release. This section will include:
+                </p>
+                <ul className="list-disc ml-6 text-gray-600 space-y-2">
+                  <li>Daily/weekly/monthly claim graphs</li>
+                  <li>User growth statistics</li>
+                  <li>Streak distribution data</li>
+                  <li>Claim time heatmap</li>
+                </ul>
+
+                {/* Example baseline charts using demo data */}
+                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Daily Claims Chart */}
                   <Card>
                     <CardHeader className="pb-2">
@@ -569,7 +591,7 @@ export default function Admin() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
+                      <ResponsiveContainer width="100%" height={200}>
                         <BarChart data={dailyClaimData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
@@ -580,7 +602,7 @@ export default function Admin() {
                       </ResponsiveContainer>
                     </CardContent>
                   </Card>
-                  
+
                   {/* User Growth Chart */}
                   <Card>
                     <CardHeader className="pb-2">
@@ -590,7 +612,7 @@ export default function Admin() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
+                      <ResponsiveContainer width="100%" height={200}>
                         <LineChart data={userGrowthData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="day" />
@@ -601,7 +623,7 @@ export default function Admin() {
                       </ResponsiveContainer>
                     </CardContent>
                   </Card>
-                  
+
                   {/* Streak Distribution Chart */}
                   <Card>
                     <CardHeader className="pb-2">
@@ -611,14 +633,14 @@ export default function Admin() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
+                      <ResponsiveContainer width="100%" height={200}>
                         <PieChart margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
                           <Pie
                             data={streakDistributionData}
                             cx="50%"
                             cy="50%"
                             labelLine={true}
-                            outerRadius={80}
+                            outerRadius={60}
                             fill="#8884d8"
                             dataKey="value"
                             label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
@@ -632,8 +654,8 @@ export default function Admin() {
                       </ResponsiveContainer>
                     </CardContent>
                   </Card>
-                  
-                  {/* Claim Time Heatmap (represented as a bar chart for simplicity) */}
+
+                  {/* Claim Time Heatmap */}
                   <Card>
                     <CardHeader className="pb-2">
                       <div className="flex items-center">
@@ -642,7 +664,7 @@ export default function Admin() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
+                      <ResponsiveContainer width="100%" height={200}>
                         <BarChart data={claimTimeData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="hour" />
@@ -654,10 +676,62 @@ export default function Admin() {
                     </CardContent>
                   </Card>
                 </div>
+
               </CardContent>
             </Card>
           </TabsContent>
-          
+
+          {/* Password Reset Requests Tab */}
+          <TabsContent value="passwordReset">
+            <Card>
+              <CardHeader>
+                <CardTitle>Password Reset Requests</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {passwordResetRequests.length === 0 ? (
+                  <p className="text-center text-gray-500 py-4">No password reset requests at this time.</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Username</TableHead>
+                        <TableHead>Requested At</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {passwordResetRequests.map((req) => (
+                        <TableRow key={req.id}>
+                          <TableCell>{req.username}</TableCell>
+                          <TableCell>{formatDate(req.requestedAt)}</TableCell>
+                          <TableCell>
+                            {req.approved ? (
+                              <span className="text-green-600">Approved</span>
+                            ) : (
+                              <span className="text-amber-600">Pending</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {!req.approved && (
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleApprovePasswordReset(req.id)}
+                              >
+                                <MailCheck className="mr-1 h-4 w-4" />
+                                Approve
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Settings Tab */}
           <TabsContent value="settings">
             <Card>

@@ -13,17 +13,28 @@ export default function Register() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [ethAddress, setEthAddress] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   
   const navigate = useNavigate();
   const { login } = useAuth() as any;
   
+  const isValidEthAddress = (address: string) => {
+    // Simple check: length 42, starts with "0x" and hex chars
+    return /^0x[a-fA-F0-9]{40}$/.test(address);
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!username.trim()) {
       setError("Username is required");
+      return;
+    }
+    
+    if (!isValidEthAddress(ethAddress.trim())) {
+      setError("A valid Base Chain ETH address is required");
       return;
     }
     
@@ -35,7 +46,7 @@ export default function Register() {
     try {
       setIsLoading(true);
       setError("");
-      // For demo purposes, login also creates a user account if it doesn't exist
+      // Here we call login because actual user creation will be handled in loginUser service adjusted for strict login
       await login(username, password);
       navigate("/dashboard");
     } catch (err) {
@@ -64,6 +75,7 @@ export default function Register() {
         
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
@@ -73,6 +85,20 @@ export default function Register() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ethAddress">Base Chain ETH Address</Label>
+              <Input
+                id="ethAddress"
+                type="text"
+                placeholder="Enter your Base Chain ETH address"
+                value={ethAddress}
+                onChange={(e) => setEthAddress(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Your Base Chain ETH address is required for account verification.
+              </p>
             </div>
             
             <div className="space-y-2">
@@ -127,3 +153,4 @@ export default function Register() {
     </div>
   );
 }
+

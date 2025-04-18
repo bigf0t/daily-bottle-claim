@@ -1,98 +1,24 @@
 
 import { User, ClaimLog } from "@/types/auth";
 import { getCurrentUTCDate } from "@/utils/authUtils";
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+// Removed Supabase initialize and stuff to focus on localStorage for strict login/registration
 
 // Default admin credentials
 export const ADMIN_USERNAME = "admin";
 export const ADMIN_PASSWORD = "123";
 
-// Default user credentials for testing
-export const TEST_USER_USERNAME = "123";
-export const TEST_USER_PASSWORD = "123";
-
-// Initialize Supabase client
-// Adding fallback values to prevent initialization errors
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-url.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
-
-export const supabase: SupabaseClient = createClient(
-  supabaseUrl,
-  supabaseAnonKey
-);
-
-// Initialize Supabase tables if they don't exist
-export const initializeSupabaseTables = async () => {
-  try {
-    // Check if users table exists and create if not
-    const { error: usersTableError } = await supabase.rpc('create_users_table_if_not_exists');
-    if (usersTableError) console.error('Error creating users table:', usersTableError);
-    
-    // Check if logs table exists and create if not
-    const { error: logsTableError } = await supabase.rpc('create_logs_table_if_not_exists');
-    if (logsTableError) console.error('Error creating logs table:', logsTableError);
-    
-    // Create initial admin and test user if not exists
-    await createInitialUsers();
-  } catch (error) {
-    console.error('Error initializing Supabase tables:', error);
-  }
-};
-
-// Create initial admin and test user accounts
-export const createInitialUsers = async () => {
-  // Check if admin exists
-  const { data: adminExists } = await supabase
-    .from('users')
-    .select('id')
-    .eq('username', ADMIN_USERNAME)
-    .single();
-
-  // Create admin if not exists
-  if (!adminExists) {
-    await supabase.from('users').insert({
-      username: ADMIN_USERNAME,
-      password_hash: ADMIN_PASSWORD, // In production, use proper hashing
-      total_claims: 0,
-      streak: 0,
-      last_claim: null,
-      is_admin: true,
-      created_at: getCurrentUTCDate()
-    });
-  }
-  
-  // Check if test user exists
-  const { data: testUserExists } = await supabase
-    .from('users')
-    .select('id')
-    .eq('username', TEST_USER_USERNAME)
-    .single();
-
-  // Create test user if not exists
-  if (!testUserExists) {
-    await supabase.from('users').insert({
-      username: TEST_USER_USERNAME,
-      password_hash: TEST_USER_PASSWORD, // In production, use proper hashing
-      total_claims: 0,
-      streak: 0,
-      last_claim: null,
-      is_admin: false,
-      created_at: getCurrentUTCDate()
-    });
-  }
-};
-
-// Create local user storage functions
+// Initialize or create default users if missing
 export const createLocalUsers = () => {
   const existingUsers = JSON.parse(localStorage.getItem("bottlecaps_users") || "[]");
   let usersUpdated = false;
   
-  // Check for admin account
   const adminExists = existingUsers.some((u: User) => u.username === ADMIN_USERNAME);
   if (!adminExists) {
     existingUsers.push({
       id: "admin-id",
       username: ADMIN_USERNAME,
+      password: ADMIN_PASSWORD, // plain for demo; normally hash
       totalClaims: 0,
       streak: 0,
       lastClaim: null,
@@ -102,22 +28,8 @@ export const createLocalUsers = () => {
     usersUpdated = true;
   }
   
-  // Check for test user account
-  const testUserExists = existingUsers.some((u: User) => u.username === TEST_USER_USERNAME);
-  if (!testUserExists) {
-    existingUsers.push({
-      id: Date.now().toString(),
-      username: TEST_USER_USERNAME,
-      totalClaims: 0,
-      streak: 0,
-      lastClaim: null,
-      isAdmin: false,
-      createdAt: getCurrentUTCDate()
-    });
-    usersUpdated = true;
-  }
+  // No more test user by default. Removed random test user.
   
-  // Update localStorage if changes were made
   if (usersUpdated) {
     localStorage.setItem("bottlecaps_users", JSON.stringify(existingUsers));
   }
@@ -139,9 +51,11 @@ export const removeUserFromStorage = (): void => {
   localStorage.removeItem("bottlecaps_user");
 };
 
-// Login user
+// Login user with strict validation: users must exist and password match
 export const loginUser = async (username: string, password: string): Promise<User> => {
-  // Check for admin login
+  const existingUsers = JSON.parse(localStorage.getItem("bottlecaps_users") || "[]");
+
+  // Check admin login first
   if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
     const adminUser: User = {
       id: "admin-id",
@@ -152,51 +66,60 @@ export const loginUser = async (username: string, password: string): Promise<Use
       isAdmin: true,
       createdAt: getCurrentUTCDate()
     };
-    
     saveUserToStorage(adminUser);
     return adminUser;
   }
   
-  // Check if user exists
-  const existingUsers = JSON.parse(localStorage.getItem("bottlecaps_users") || "[]");
-  const existingUser = existingUsers.find((u: User) => u.username === username);
+  // Find existing user by username
+  const existingUser = existingUsers.find((u: User & { password?: string }) => u.username === username);
   
-  if (existingUser) {
-    // Simple password check - in a real app, this would use proper hashing
-    // We're not checking passwords for this demo
-    saveUserToStorage(existingUser);
-    return existingUser;
-  } else {
-    // Create new user if it doesn't exist
-    const newUser: User = {
-      id: Date.now().toString(),
-      username,
-      totalClaims: 0,
-      streak: 0,
-      lastClaim: null,
-      isAdmin: false,
-      createdAt: getCurrentUTCDate()
-    };
-    
-    // Add user to users list
-    existingUsers.push(newUser);
-    localStorage.setItem("bottlecaps_users", JSON.stringify(existingUsers));
-    
-    // Set as current user
-    saveUserToStorage(newUser);
-    return newUser;
+  if (!existingUser) {
+    throw new Error("No such username or invalid password.");
   }
+  
+  // Check password matches stored password property (if missing, treat as invalid)
+  if (!(existingUser as any).password || (existingUser as any).password !== password) {
+    throw new Error("No such username or invalid password.");
+  }
+  
+  // Successful login
+  saveUserToStorage(existingUser);
+  return existingUser;
 };
 
-// Update user data
-export const updateUserData = (updatedUser: User): void => {
-  // Update in localStorage (current user)
-  saveUserToStorage(updatedUser);
-  
-  // Update in users list
+// Register user: create new user if it doesn't exist, else throw error
+export const registerUser = async (username: string, ethAddress: string, password: string): Promise<User> => {
   const existingUsers = JSON.parse(localStorage.getItem("bottlecaps_users") || "[]");
-  const updatedUsers = existingUsers.map((u: User) => 
-    u.id === updatedUser.id ? updatedUser : u
+
+  if (existingUsers.find((u: User & { password?: string }) => u.username === username)) {
+    throw new Error("Username already exists.");
+  }
+  
+  const newUser: User & { password: string; ethAddress: string } = {
+    id: Date.now().toString(),
+    username,
+    totalClaims: 0,
+    streak: 0,
+    lastClaim: null,
+    isAdmin: false,
+    createdAt: getCurrentUTCDate(),
+    password,
+    ethAddress
+  };
+  
+  existingUsers.push(newUser);
+  localStorage.setItem("bottlecaps_users", JSON.stringify(existingUsers));
+  saveUserToStorage(newUser);
+  return newUser;
+};
+
+// Update user data including password if needed
+export const updateUserData = (updatedUser: User): void => {
+  saveUserToStorage(updatedUser);
+
+  const existingUsers = JSON.parse(localStorage.getItem("bottlecaps_users") || "[]");
+  const updatedUsers = existingUsers.map((u: User & { password?: string }) =>
+    u.id === updatedUser.id ? { ...u, ...updatedUser } : u
   );
   localStorage.setItem("bottlecaps_users", JSON.stringify(updatedUsers));
 };
@@ -218,7 +141,34 @@ export const logClaimAttempt = (username: string, result: string, timestamp: str
     username,
     result,
     timestamp,
-    ip: "127.0.0.1" // Placeholder, would be actual IP in real app
+    ip: "127.0.0.1"
   });
   localStorage.setItem("bottlecaps_logs", JSON.stringify(existingLogs));
 };
+
+// Store password reset requests to localStorage
+export interface PasswordResetRequest {
+  id: string;
+  username: string;
+  requestedAt: string;
+  approved: boolean;
+}
+
+export const getPasswordResetRequests = (): PasswordResetRequest[] => {
+  return JSON.parse(localStorage.getItem("bottlecaps_password_reset_requests") || "[]");
+};
+
+export const addPasswordResetRequest = (request: PasswordResetRequest): void => {
+  const existing = getPasswordResetRequests();
+  existing.push(request);
+  localStorage.setItem("bottlecaps_password_reset_requests", JSON.stringify(existing));
+};
+
+export const approvePasswordResetRequest = (id: string): void => {
+  const requests = getPasswordResetRequests();
+  const updated = requests.map(r =>
+    r.id === id ? { ...r, approved: true } : r
+  );
+  localStorage.setItem("bottlecaps_password_reset_requests", JSON.stringify(updated));
+};
+

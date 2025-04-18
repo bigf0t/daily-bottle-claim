@@ -10,7 +10,10 @@ import {
   updateUserData as updateUser,
   getAllUsers as getUsers,
   getClaimLogs as getLogs,
-  logClaimAttempt
+  logClaimAttempt,
+  addPasswordResetRequest,
+  getPasswordResetRequests,
+  approvePasswordResetRequest
 } from "@/services/authService";
 
 // Create the auth context
@@ -20,25 +23,28 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [passwordResetRequests, setPasswordResetRequests] = useState<any[]>([]);
 
   // Initialize on first load
   useEffect(() => {
     // initializeSupabaseTables(); // Uncomment when SQL functions are created
     
-    // For now, we'll use localStorage until SQL functions are set up
+    // Use localStorage for user management now
     const loadUser = () => {
       const storedUser = getUserFromStorage();
       if (storedUser) {
         setUser(storedUser);
       }
       
-      // Ensure the admin and test user accounts exist in localStorage
       createLocalUsers();
       
       setIsLoading(false);
     };
     
     loadUser();
+
+    // Load password reset requests
+    setPasswordResetRequests(getPasswordResetRequests());
   }, []);
 
   // Login function
@@ -99,6 +105,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Password reset request - users submit request
+  const submitPasswordResetRequest = (username: string) => {
+    const req = {
+      id: Date.now().toString(),
+      username,
+      requestedAt: getCurrentUTCDate(),
+      approved: false,
+    };
+    addPasswordResetRequest(req);
+    setPasswordResetRequests((prev) => [...prev, req]);
+  };
+
+  // Admin approve password reset request
+  const confirmPasswordResetRequest = (id: string) => {
+    approvePasswordResetRequest(id);
+    setPasswordResetRequests((prev) => prev.map(r => r.id === id ? { ...r, approved: true } : r));
+  };
+
   const contextValue = {
     user,
     login,
@@ -109,7 +133,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isClaimAllowed: user ? isClaimAllowed(user.lastClaim) : false,
     getAllUsers: getUsers,
     getClaimLogs: getLogs,
-    updateUserData
+    updateUserData,
+    submitPasswordResetRequest,
+    passwordResetRequests,
+    confirmPasswordResetRequest
   };
 
   return (

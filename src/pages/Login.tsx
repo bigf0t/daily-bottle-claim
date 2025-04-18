@@ -32,7 +32,7 @@ export default function Login() {
       await login(username, password);
       navigate("/dashboard");
     } catch (err) {
-      setError("Login failed. Please try again.");
+      setError("No such username or invalid password.");
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -51,7 +51,7 @@ export default function Login() {
         <CardHeader>
           <CardTitle>Sign In</CardTitle>
           <CardDescription>
-            Enter your username to claim your daily BottleCap token.
+            Enter your username and password to log in.
           </CardDescription>
         </CardHeader>
         
@@ -77,9 +77,6 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
-                For demo purposes, any password will work.
-              </p>
             </div>
             
             {error && (
