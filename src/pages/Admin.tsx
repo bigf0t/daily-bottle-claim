@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, AuthContextType } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,18 +11,17 @@ import { BottleCap } from "@/components/BottleCap";
 import { 
   Ban, LogOut, Users, ClipboardList, Shield, BarChart3, 
   Settings, Award, AlertTriangle, Image, Upload, Calendar,
-  TrendingUp, UsersRound, ChartPie, Clock, MailCheck, Mail, MailPlus
+  TrendingUp, ChartPie, Clock, MailCheck
 } from "lucide-react";
 import { toast } from "sonner";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
   ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell
 } from 'recharts';
-import { useAuth as useAuthType } from "@/contexts/AuthContext";
 
 export default function Admin() {
   const { user, logout, isAuthenticated, getAllUsers, getClaimLogs, 
-          passwordResetRequests, confirmPasswordResetRequest } = useAuth() as useAuthType;
+          passwordResetRequests, confirmPasswordResetRequest } = useAuth() as AuthContextType;
   const [users, setUsers] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [blacklist, setBlacklist] = useState<string[]>([]);
@@ -819,3 +818,4 @@ export default function Admin() {
     </div>
   );
 }
+
