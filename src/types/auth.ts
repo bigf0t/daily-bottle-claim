@@ -26,6 +26,7 @@ export interface AuthContextType {
 
   passwordResetRequests?: any[]; 
   confirmPasswordResetRequest?: (id: string) => void;
+  submitPasswordResetRequest?: (username: string) => void;
 
   canUpdateUsername?: () => boolean;
   updateAccountInfo?: (updatedFields: Partial<User>) => void;

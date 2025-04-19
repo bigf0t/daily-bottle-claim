@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -147,7 +146,7 @@ export default function Dashboard() {
             {editing ? (
               <>
                 <Button variant="ghost" onClick={() => setEditing(false)}><X className="w-5 h-5" /></Button>
-                <Button variant="primary" onClick={handleSave}><Check className="w-5 h-5" /></Button>
+                <Button variant="default" onClick={handleSave}><Check className="w-5 h-5" /></Button>
               </>
             ) : (
               <>
