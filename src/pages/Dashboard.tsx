@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,10 +17,12 @@ export default function Dashboard() {
     user, logout, isAuthenticated, isClaimAllowed,
     canUpdateUsername, updateAccountInfo,
     submitPasswordResetRequest,
+    getAllUsers,
+    getClaimLogs,
   } = useAuth() as any;
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
   const navigate = useNavigate();
-  
+
   // Edit account UI state
   const [editing, setEditing] = useState(false);
   const [editUsername, setEditUsername] = useState(user?.username || "");
@@ -28,19 +31,57 @@ export default function Dashboard() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [editError, setEditError] = useState("");
   const [editSuccess, setEditSuccess] = useState("");
-  
-  // Redirect to login if not authenticated or to admin if admin
+
+  // Stats analytics state
+  const [totalClaimsToday, setTotalClaimsToday] = useState(0);
+  const [averageStreak, setAverageStreak] = useState(0);
+  const [activeUsersToday, setActiveUsersToday] = useState(0);
+
+  // Redirect to login if not authenticated or redirect admin to admin page
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
       return;
     }
-    
-    // Redirect admin to admin panel
+
     if (user?.isAdmin) {
       navigate("/admin");
+      return;
     }
   }, [isAuthenticated, user, navigate]);
+
+  // Update analytics on load and when claim logs or users change
+  useEffect(() => {
+    if (!getClaimLogs || !getAllUsers) return;
+
+    const logs = getClaimLogs();
+    const users = getAllUsers();
+
+    // Reset analytics counters
+    let claimsToday = 0;
+    let streaksSum = 0;
+    let activeUsersSet = new Set<string>();
+
+    const todayUTCDateStr = new Date().toISOString().split("T")[0];
+
+    logs.forEach((log: any) => {
+      if (log.result === "success") {
+        const logDate = log.timestamp.split("T")[0];
+        if (logDate === todayUTCDateStr) {
+          claimsToday++;
+          activeUsersSet.add(log.username);
+        }
+      }
+    });
+
+    users.forEach((u: any) => {
+      streaksSum += u.streak || 0;
+    });
+
+    setTotalClaimsToday(claimsToday);
+    setActiveUsersToday(activeUsersSet.size);
+    setAverageStreak(users.length ? (streaksSum / users.length) : 0);
+  }, [getClaimLogs, getAllUsers]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Never";
@@ -79,7 +120,6 @@ export default function Dashboard() {
 
     // Validate email format if changed
     if (editEmail.trim() && editEmail !== user?.email) {
-      // basic email regex
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(editEmail.trim())) {
         setEditError("Invalid email address.");
@@ -124,7 +164,6 @@ export default function Dashboard() {
     setEditing(false);
   };
 
-  // If still authenticating or no user, show loading
   if (!user) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-gray-50">
@@ -165,9 +204,9 @@ export default function Dashboard() {
       </header>
 
       {/* Main content - User profile and stats */}
-      <main className="max-w-5xl mx-auto px-4 py-8 sm:px-6">
+      <main className="max-w-5xl mx-auto px-4 py-8 sm:px-6 space-y-8">
         {/* User info card */}
-        <Card className="shadow-md mb-8">
+        <Card className="shadow-md">
           <CardHeader>
             <CardTitle>Your Account</CardTitle>
           </CardHeader>
@@ -225,7 +264,7 @@ export default function Dashboard() {
                 <div className="flex items-center">
                   <div className="text-4xl font-bold mr-2">{user.username}</div>
                 </div>
-                
+
                 <Separator />
 
                 <div className="flex items-center space-x-2 text-gray-600">
@@ -242,30 +281,56 @@ export default function Dashboard() {
         </Card>
 
         {/* Stats card */}
-        <Card className="shadow-md mb-8">
+        <Card className="shadow-md">
           <CardHeader>
-            <CardTitle>Your Stats</CardTitle>
+            <CardTitle>User Stats</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
+              {/* Total Claims by current user */}
               <div className="flex flex-col items-center justify-center p-3 bg-blue-50 rounded-lg">
                 <BottleCap size="sm" />
                 <div className="mt-2 text-2xl font-bold">{user.totalClaims}</div>
-                <div className="text-sm text-gray-500">Total Claimed</div>
+                <div className="text-sm text-gray-500">My Total Claimed</div>
               </div>
-              
+
+              {/* Current streak */}
               <div className="flex flex-col items-center justify-center p-3 bg-amber-50 rounded-lg">
                 <Star className="w-10 h-10 text-bottlecap-gold" />
                 <div className="mt-2 text-2xl font-bold">{user.streak}</div>
-                <div className="text-sm text-gray-500">Day Streak</div>
+                <div className="text-sm text-gray-500">My Day Streak</div>
               </div>
-              
+
+              {/* Last claim date */}
               <div className="col-span-2 flex flex-col p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center">
                   <Clock className="w-5 h-5 mr-2 text-gray-500" />
-                  <div className="text-sm text-gray-500">Last Claim:</div>
+                  <div className="text-sm text-gray-500">My Last Claim:</div>
                 </div>
                 <div className="mt-1 text-lg font-medium">{formatDate(user.lastClaim)}</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* New analytics card */}
+        <Card className="shadow-md">
+          <CardHeader>
+            <CardTitle>Community Analytics</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="p-3 bg-green-50 rounded-lg">
+                <h3 className="text-lg font-semibold">Total Claims Today</h3>
+                <p className="text-2xl font-bold text-green-700">{totalClaimsToday}</p>
+              </div>
+              <div className="p-3 bg-yellow-50 rounded-lg">
+                <h3 className="text-lg font-semibold">Active Users Today</h3>
+                <p className="text-2xl font-bold text-yellow-700">{activeUsersToday}</p>
+              </div>
+              <div className="p-3 bg-indigo-50 rounded-lg">
+                <h3 className="text-lg font-semibold">Average Streak</h3>
+                <p className="text-2xl font-bold text-indigo-700">{averageStreak.toFixed(1)}</p>
               </div>
             </div>
           </CardContent>
@@ -279,7 +344,7 @@ export default function Dashboard() {
               <p className="text-center mb-6 text-xl font-medium text-bottlecap-navy">
                 Your daily BottleCap is ready to claim!
               </p>
-              <Button 
+              <Button
                 size="lg"
                 className="w-64 h-16 text-xl bg-bottlecap-blue hover:bg-blue-600 shadow-lg transition-all hover:scale-105"
                 onClick={() => setIsClaimModalOpen(true)}
@@ -298,7 +363,7 @@ export default function Dashboard() {
                   Come back tomorrow for your next BottleCap!
                 </p>
               </div>
-              <Button 
+              <Button
                 size="lg"
                 variant="outline"
                 className="w-64 h-16 text-xl"
@@ -323,15 +388,16 @@ export default function Dashboard() {
           </div>
         )}
       </main>
-      
+
       {/* Claim modal */}
       <ClaimModal
         isOpen={isClaimModalOpen}
         onClose={() => setIsClaimModalOpen(false)}
       />
-      
+
       {/* Honeypot for bot detection */}
       <HoneypotButton />
     </div>
   );
 }
+

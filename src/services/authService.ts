@@ -1,7 +1,7 @@
 import { User, ClaimLog } from "@/types/auth";
 import { getCurrentUTCDate } from "@/utils/authUtils";
 
-// Removed Supabase initialize and stuff to focus on localStorage for strict login/registration
+// Focus the user list on realistic tracking by keeping only users and no extra test accounts or analytics clutter
 
 // Default admin credentials
 export const ADMIN_USERNAME = "admin";
@@ -11,10 +11,12 @@ export const ADMIN_PASSWORD = "123";
 export const createLocalUsers = () => {
   const existingUsers = JSON.parse(localStorage.getItem("bottlecaps_users") || "[]");
   let usersUpdated = false;
-  
-  const adminExists = existingUsers.some((u: User) => u.username === ADMIN_USERNAME);
-  if (!adminExists) {
-    existingUsers.push({
+
+  // Remove any non-admin or test users to keep tracking realistic
+  const filteredUsers = existingUsers.filter((u: User) => u.isAdmin);
+
+  if (!filteredUsers.some((u: User) => u.username === ADMIN_USERNAME)) {
+    filteredUsers.push({
       id: "admin-id",
       username: ADMIN_USERNAME,
       password: ADMIN_PASSWORD, // plain for demo; normally hash
@@ -26,11 +28,9 @@ export const createLocalUsers = () => {
     });
     usersUpdated = true;
   }
-  
-  // No more test user by default. Removed random test user.
-  
-  if (usersUpdated) {
-    localStorage.setItem("bottlecaps_users", JSON.stringify(existingUsers));
+
+  if (usersUpdated || filteredUsers.length !== existingUsers.length) {
+    localStorage.setItem("bottlecaps_users", JSON.stringify(filteredUsers));
   }
 };
 
