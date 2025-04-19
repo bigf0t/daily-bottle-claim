@@ -123,7 +123,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setPasswordResetRequests((prev) => prev.map(r => r.id === id ? { ...r, approved: true } : r));
   };
 
-  const contextValue = {
+  // Update username only if allowed (at least 30 days since last update)
+  const canUpdateUsername = () => {
+    if (!user?.usernameUpdatedAt) return true; // if never updated, allowed
+    const lastUpdate = new Date(user.usernameUpdatedAt);
+    const now = new Date();
+    // 30 days elapsed check
+    return (now.getTime() - lastUpdate.getTime()) >= (30 * 24 * 60 * 60 * 1000);
+  };
+
+  // Update user account info including username and email
+  const updateAccountInfo = (updatedFields: Partial<User>) => {
+    if (!user) return;
+    let updatedUser = {...user, ...updatedFields};
+    // Update usernameUpdatedAt if username changed
+    if (updatedFields.username && updatedFields.username !== user.username) {
+      updatedUser.usernameUpdatedAt = getCurrentUTCDate();
+    }
+    updateUserData(updatedUser);
+  };
+
+  const contextValue: AuthContextType = {
     user,
     login,
     logout,
@@ -136,7 +156,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     updateUserData,
     submitPasswordResetRequest,
     passwordResetRequests,
-    confirmPasswordResetRequest
+    confirmPasswordResetRequest,
+    canUpdateUsername,
+    updateAccountInfo,
   };
 
   return (

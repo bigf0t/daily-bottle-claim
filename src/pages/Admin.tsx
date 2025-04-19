@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,7 +21,7 @@ import {
 
 export default function Admin() {
   const { user, logout, isAuthenticated, getAllUsers, getClaimLogs, 
-          passwordResetRequests, confirmPasswordResetRequest } = useAuth() as AuthContextType;
+          passwordResetRequests = [], confirmPasswordResetRequest } = useAuth() as AuthContextType;
   const [users, setUsers] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [blacklist, setBlacklist] = useState<string[]>([]);
@@ -172,8 +171,10 @@ export default function Admin() {
 
   // Approve password reset request from admin panel
   const handleApprovePasswordReset = (id: string) => {
-    confirmPasswordResetRequest(id);
-    toast.success("Password reset request approved. Please contact the user.");
+    if (confirmPasswordResetRequest) {
+      confirmPasswordResetRequest(id);
+      toast.success("Password reset request approved. Please contact the user.");
+    }
   };
 
   // If not admin or still loading, show placeholder
@@ -819,4 +820,3 @@ export default function Admin() {
     </div>
   );
 }
-

@@ -7,6 +7,9 @@ export interface User {
   lastClaim: string | null;
   isAdmin: boolean;
   createdAt?: string;
+  usernameUpdatedAt?: string; // New field to track when username last changed
+  ethAddress?: string;
+  email?: string;
 }
 
 export interface AuthContextType {
@@ -21,9 +24,11 @@ export interface AuthContextType {
   getClaimLogs?: () => any[];
   updateUserData?: (user: User) => void;
 
-  // Add these new properties for password reset requests management
-  passwordResetRequests?: any[]; // you can type this more strictly if desired
+  passwordResetRequests?: any[]; 
   confirmPasswordResetRequest?: (id: string) => void;
+
+  canUpdateUsername?: () => boolean;
+  updateAccountInfo?: (updatedFields: Partial<User>) => void;
 }
 
 export interface ClaimLog {
