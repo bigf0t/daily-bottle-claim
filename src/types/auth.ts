@@ -20,6 +20,10 @@ export interface AuthContextType {
   getAllUsers?: () => User[];
   getClaimLogs?: () => any[];
   updateUserData?: (user: User) => void;
+
+  // Add these new properties for password reset requests management
+  passwordResetRequests?: any[]; // you can type this more strictly if desired
+  confirmPasswordResetRequest?: (id: string) => void;
 }
 
 export interface ClaimLog {
