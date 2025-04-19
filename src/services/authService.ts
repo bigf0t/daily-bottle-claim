@@ -1,4 +1,3 @@
-
 import { User, ClaimLog } from "@/types/auth";
 import { getCurrentUTCDate } from "@/utils/authUtils";
 
@@ -87,15 +86,20 @@ export const loginUser = async (username: string, password: string): Promise<Use
   return existingUser;
 };
 
-// Register user: create new user if it doesn't exist, else throw error
-export const registerUser = async (username: string, ethAddress: string, password: string): Promise<User> => {
+// Adjust registerUser to make ethAddress optional:
+
+export const registerUser = async (
+  username: string,
+  ethAddress: string | undefined,
+  password: string
+): Promise<User> => {
   const existingUsers = JSON.parse(localStorage.getItem("bottlecaps_users") || "[]");
 
   if (existingUsers.find((u: User & { password?: string }) => u.username === username)) {
     throw new Error("Username already exists.");
   }
-  
-  const newUser: User & { password: string; ethAddress: string } = {
+
+  const newUser: User & { password: string; ethAddress?: string } = {
     id: Date.now().toString(),
     username,
     totalClaims: 0,
@@ -104,9 +108,12 @@ export const registerUser = async (username: string, ethAddress: string, passwor
     isAdmin: false,
     createdAt: getCurrentUTCDate(),
     password,
-    ethAddress
   };
-  
+
+  if (ethAddress && ethAddress.trim() !== "") {
+    newUser.ethAddress = ethAddress;
+  }
+
   existingUsers.push(newUser);
   localStorage.setItem("bottlecaps_users", JSON.stringify(existingUsers));
   saveUserToStorage(newUser);
@@ -171,4 +178,3 @@ export const approvePasswordResetRequest = (id: string): void => {
   );
   localStorage.setItem("bottlecaps_password_reset_requests", JSON.stringify(updated));
 };
-

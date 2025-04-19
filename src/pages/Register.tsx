@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { registerUser } from "@/services/authService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,47 +17,52 @@ export default function Register() {
   const [ethAddress, setEthAddress] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  
+
   const navigate = useNavigate();
   const { login } = useAuth() as any;
-  
+
   const isValidEthAddress = (address: string) => {
+    if (!address.trim()) {
+      return true; // optional ETH address
+    }
     // Simple check: length 42, starts with "0x" and hex chars
     return /^0x[a-fA-F0-9]{40}$/.test(address);
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!username.trim()) {
       setError("Username is required");
       return;
     }
-    
+
     if (!isValidEthAddress(ethAddress.trim())) {
       setError("A valid Base Chain ETH address is required");
       return;
     }
-    
+
     if (password !== confirmPassword) {
       setError("Passwords don't match");
       return;
     }
-    
+
     try {
       setIsLoading(true);
       setError("");
-      // Here we call login because actual user creation will be handled in loginUser service adjusted for strict login
+      // Register the user first
+      await registerUser(username, ethAddress.trim(), password);
+      // Then login
       await login(username, password);
       navigate("/dashboard");
-    } catch (err) {
-      setError("Registration failed. Please try again.");
+    } catch (err: any) {
+      setError(err.message || "Registration failed. Please try again.");
       console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-blue-100 p-4">
       <div className="mb-8 flex flex-col items-center">
@@ -64,7 +70,7 @@ export default function Register() {
         <h1 className="text-4xl font-bold text-bottlecap-navy mb-2">BottleCaps</h1>
         <p className="text-bottlecap-blue text-xl">Daily Claim Platform</p>
       </div>
-      
+
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader>
           <CardTitle>Create Account</CardTitle>
@@ -72,7 +78,7 @@ export default function Register() {
             Sign up to claim your daily BottleCap tokens.
           </CardDescription>
         </CardHeader>
-        
+
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
 
@@ -88,19 +94,19 @@ export default function Register() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="ethAddress">Base Chain ETH Address</Label>
+              <Label htmlFor="ethAddress">Base Chain ETH Address (optional)</Label>
               <Input
                 id="ethAddress"
                 type="text"
-                placeholder="Enter your Base Chain ETH address"
+                placeholder="Enter your Base Chain ETH address (optional)"
                 value={ethAddress}
                 onChange={(e) => setEthAddress(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Your Base Chain ETH address is required for account verification.
+                Your Base Chain ETH address is optional and can be added later in your profile.
               </p>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -111,7 +117,7 @@ export default function Register() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <Input
@@ -125,22 +131,22 @@ export default function Register() {
                 For demo purposes, any password will work.
               </p>
             </div>
-            
+
             {error && (
               <div className="text-sm font-medium text-destructive">{error}</div>
             )}
           </CardContent>
-          
+
           <CardFooter className="flex flex-col space-y-4">
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full bg-bottlecap-blue hover:bg-blue-600"
               disabled={isLoading}
             >
               <UserPlus className="mr-2 h-4 w-4" />
               {isLoading ? "Creating Account..." : "Create Account"}
             </Button>
-            
+
             <div className="text-sm text-center">
               Already have an account?{" "}
               <Link to="/login" className="text-bottlecap-blue font-medium hover:underline">
