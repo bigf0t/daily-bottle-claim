@@ -11,17 +11,13 @@ import { BottleCap } from "@/components/BottleCap";
 import { 
   Ban, LogOut, Users, ClipboardList, Shield, BarChart3, 
   Settings, Award, AlertTriangle, Image, Upload, Calendar,
-  TrendingUp, ChartPie, Clock, MailCheck
+  TrendingUp, ChartPie, Clock, MailCheck, ShieldAlert
 } from "lucide-react";
 import { toast } from "sonner";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
   ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell
 } from 'recharts';
-
-import {
-  ShieldAlert, TrendingUp, Users
-} from "lucide-react";
 
 export default function Admin() {
   const { user, logout, isAuthenticated, getAllUsers, getClaimLogs, 
@@ -97,6 +93,15 @@ export default function Admin() {
     { week: 'Week 4', blocks: 6 },
   ]);
 
+  const [activeUserPercentage, setActiveUserPercentage] = useState<number>(0);
+  const [monthlyClaimsData, setMonthlyClaimsData] = useState([
+    { month: 'Jan', claims: 120 },
+    { month: 'Feb', claims: 150 },
+    { month: 'Mar', claims: 180 },
+    { month: 'Apr', claims: 200 },
+    { month: 'May', claims: 190 },
+  ]);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -104,7 +109,6 @@ export default function Admin() {
       navigate("/login");
       return;
     }
-    
     if (user && !user.isAdmin) {
       navigate("/dashboard");
     }
@@ -112,19 +116,21 @@ export default function Admin() {
 
   useEffect(() => {
     if (user?.isAdmin) {
-      
       const allUsers = getAllUsers();
       setUsers(allUsers);
-      
       const allLogs = getClaimLogs();
       setLogs(allLogs);
-      
       const storedBlacklist = JSON.parse(localStorage.getItem("bottlecaps_blacklist") || "[]");
       setBlacklist(storedBlacklist);
-      
       const savedClaimImage = localStorage.getItem("bottlecaps_claim_image");
       if (savedClaimImage) {
         setClaimImage(savedClaimImage);
+      }
+      if (allUsers && allUsers.length > 0) {
+        const activeCount = allUsers.filter(u => u.lastClaim !== null).length;
+        setActiveUserPercentage((activeCount / allUsers.length) * 100);
+      } else {
+        setActiveUserPercentage(0);
       }
     }
   }, [user, getAllUsers, getClaimLogs]);
@@ -212,7 +218,6 @@ export default function Admin() {
               <p className="text-sm text-gray-500">Admin Control Panel</p>
             </div>
           </div>
-          
           <div className="flex items-center gap-4">
             <Button 
               variant="ghost" 
@@ -285,7 +290,7 @@ export default function Admin() {
           </Card>
         </div>
         
-        <Tabs defaultValue="users">
+        <Tabs baseId="admin-tabs" defaultValue="users">
           <TabsList className="grid w-full grid-cols-6 mb-8">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -877,6 +882,52 @@ export default function Admin() {
                     </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="viewMore">
+            <Card>
+              <CardHeader>
+                <CardTitle>Additional Platform Insights</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-8">
+                  <div>
+                    <h3 className="font-semibold mb-3">Monthly Claims</h3>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={monthlyClaimsData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <RechartsTooltip />
+                        <Bar dataKey="claims" fill="#2563eb" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold mb-3">Active User Percentage</h3>
+                    <div className="text-center text-4xl font-bold text-green-600">
+                      {activeUserPercentage.toFixed(1)}%
+                    </div>
+                    <p className="text-center text-gray-600 mt-1">
+                      Percentage of users active in the last claim period.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="mt-8">
+              <CardHeader>
+                <CardTitle>Community Engagement & Content</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-700">
+                  These additional stats highlight how engaged and active your user community is, useful for sharing positive platform growth with stakeholders.
+                </p>
+                {/* Here you could add more content or charts in the future */}
               </CardContent>
             </Card>
           </TabsContent>
