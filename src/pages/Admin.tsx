@@ -19,6 +19,10 @@ import {
   ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell
 } from 'recharts';
 
+import {
+  ShieldAlert, TrendingUp, Users
+} from "lucide-react";
+
 export default function Admin() {
   const { user, logout, isAuthenticated, getAllUsers, getClaimLogs, 
           passwordResetRequests = [], confirmPasswordResetRequest } = useAuth() as AuthContextType;
@@ -30,10 +34,8 @@ export default function Admin() {
   const [claimImage, setClaimImage] = useState<string>("https://source.unsplash.com/random/1200x800/?drink,beverage");
   const [imageUrl, setImageUrl] = useState("");
 
-  // New state for managing password reset request approval notes
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
-  // Demo data for analytics charts
   const [dailyClaimData, setDailyClaimData] = useState([
     { name: 'Mon', claims: 24 },
     { name: 'Tue', claims: 30 },
@@ -75,9 +77,28 @@ export default function Admin() {
     { hour: '21:00', claims: 15 },
   ]);
   
+  const [suspiciousLoginAttempts, setSuspiciousLoginAttempts] = useState([
+    { day: '4/10', attempts: 3 },
+    { day: '4/11', attempts: 1 },
+    { day: '4/12', attempts: 0 },
+    { day: '4/13', attempts: 4 },
+    { day: '4/14', attempts: 2 }
+  ]);
+  const [newUserRegistrations, setNewUserRegistrations] = useState([
+    { month: 'Jan', count: 20 },
+    { month: 'Feb', count: 45 },
+    { month: 'Mar', count: 30 },
+    { month: 'Apr', count: 55 },
+  ]);
+  const [blacklistTrends, setBlacklistTrends] = useState([
+    { week: 'Week 1', blocks: 2 },
+    { week: 'Week 2', blocks: 5 },
+    { week: 'Week 3', blocks: 3 },
+    { week: 'Week 4', blocks: 6 },
+  ]);
+
   const navigate = useNavigate();
-  
-  // Redirect if not authenticated or not admin
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
@@ -88,8 +109,7 @@ export default function Admin() {
       navigate("/dashboard");
     }
   }, [isAuthenticated, user, navigate]);
-  
-  // Load data on mount
+
   useEffect(() => {
     if (user?.isAdmin) {
       
@@ -108,19 +128,16 @@ export default function Admin() {
       }
     }
   }, [user, getAllUsers, getClaimLogs]);
-  
-  // Handle logout
+
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
-  
-  // Filter users based on search term
+
   const filteredUsers = users.filter(user => 
     user.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  
-  // Format date in a readable way
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Never";
     const date = new Date(dateString);
@@ -132,23 +149,20 @@ export default function Admin() {
       minute: '2-digit'
     });
   };
-  
-  // Add user to blacklist
+
   const addToBlacklist = (username: string) => {
     if(blacklist.includes(username)) return;
     const newBlacklist = [...blacklist, username];
     setBlacklist(newBlacklist);
     localStorage.setItem("bottlecaps_blacklist", JSON.stringify(newBlacklist));
   };
-  
-  // Remove user from blacklist
+
   const removeFromBlacklist = (username: string) => {
     const newBlacklist = blacklist.filter(name => name !== username);
     setBlacklist(newBlacklist);
     localStorage.setItem("bottlecaps_blacklist", JSON.stringify(newBlacklist));
   };
-  
-  // Handle blacklist form submission
+
   const handleBlacklistSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (blacklistInput.trim()) {
@@ -156,8 +170,7 @@ export default function Admin() {
       setBlacklistInput("");
     }
   };
-  
-  // Update claim image
+
   const updateClaimImage = () => {
     if (imageUrl.trim()) {
       setClaimImage(imageUrl);
@@ -169,7 +182,6 @@ export default function Admin() {
     }
   };
 
-  // Approve password reset request from admin panel
   const handleApprovePasswordReset = (id: string) => {
     if (confirmPasswordResetRequest) {
       confirmPasswordResetRequest(id);
@@ -177,7 +189,6 @@ export default function Admin() {
     }
   };
 
-  // If not admin or still loading, show placeholder
   if (!user?.isAdmin) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-gray-50">
@@ -192,7 +203,6 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100">
-      {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 flex justify-between items-center">
           <div className="flex items-center">
@@ -216,9 +226,7 @@ export default function Admin() {
         </div>
       </header>
 
-      {/* Main content */}
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6">
-        {/* Dashboard Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <Card className="bg-white">
             <CardContent className="p-6">
@@ -307,9 +315,12 @@ export default function Admin() {
               <Settings className="h-4 w-4" />
               <span>Settings</span>
             </TabsTrigger>
+            <TabsTrigger value="viewMore" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              <span>View More</span>
+            </TabsTrigger>
           </TabsList>
           
-          {/* Users Tab */}
           <TabsContent value="users">
             <Card>
               <CardHeader>
@@ -380,7 +391,6 @@ export default function Admin() {
             </Card>
           </TabsContent>
           
-          {/* Claims Tab */}
           <TabsContent value="claims">
             <Card>
               <CardHeader>
@@ -429,7 +439,6 @@ export default function Admin() {
             </Card>
           </TabsContent>
           
-          {/* Blacklist Tab */}
           <TabsContent value="blacklist">
             <Card>
               <CardHeader>
@@ -500,7 +509,6 @@ export default function Admin() {
             </Card>
           </TabsContent>
           
-          {/* Image Management Tab */}
           <TabsContent value="image">
             <Card>
               <CardHeader>
@@ -564,7 +572,6 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
-          {/* Analytics Tab */}
           <TabsContent value="analytics">
             <Card>
               <CardHeader>
@@ -581,9 +588,7 @@ export default function Admin() {
                   <li>Claim time heatmap</li>
                 </ul>
 
-                {/* Example baseline charts using demo data */}
                 <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Daily Claims Chart */}
                   <Card>
                     <CardHeader className="pb-2">
                       <div className="flex items-center">
@@ -604,7 +609,6 @@ export default function Admin() {
                     </CardContent>
                   </Card>
 
-                  {/* User Growth Chart */}
                   <Card>
                     <CardHeader className="pb-2">
                       <div className="flex items-center">
@@ -625,7 +629,6 @@ export default function Admin() {
                     </CardContent>
                   </Card>
 
-                  {/* Streak Distribution Chart */}
                   <Card>
                     <CardHeader className="pb-2">
                       <div className="flex items-center">
@@ -656,7 +659,6 @@ export default function Admin() {
                     </CardContent>
                   </Card>
 
-                  {/* Claim Time Heatmap */}
                   <Card>
                     <CardHeader className="pb-2">
                       <div className="flex items-center">
@@ -678,11 +680,75 @@ export default function Admin() {
                   </Card>
                 </div>
 
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Additional Analytics</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="font-semibold mb-2 flex items-center gap-2 text-red-600">
+                          <ShieldAlert className="w-5 h-5" />
+                          Suspicious Login Attempts
+                        </h3>
+                        <ResponsiveContainer width="100%" height={180}>
+                          <BarChart data={suspiciousLoginAttempts} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="day" />
+                            <YAxis allowDecimals={false} />
+                            <RechartsTooltip />
+                            <Bar dataKey="attempts" fill="#ef4444" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                        <p className="text-sm text-red-700 mt-2">
+                          Number of flagged suspicious login attempts detected each day.
+                        </p>
+                      </div>
+
+                      <div>
+                        <h3 className="font-semibold mb-2 flex items-center gap-2 text-green-600">
+                          <Users className="w-5 h-5" />
+                          New User Registrations
+                        </h3>
+                        <ResponsiveContainer width="100%" height={180}>
+                          <LineChart data={newUserRegistrations} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="month" />
+                            <YAxis allowDecimals={false} />
+                            <RechartsTooltip />
+                            <Line type="monotone" dataKey="count" stroke="#22c55e" strokeWidth={2} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                        <p className="text-sm text-green-700 mt-2">
+                          Monthly new user sign-ups to showcase community growth.
+                        </p>
+                      </div>
+
+                      <div>
+                        <h3 className="font-semibold mb-2 flex items-center gap-2 text-amber-700">
+                          <Shield className="w-5 h-5" />
+                          Blacklist Trends
+                        </h3>
+                        <ResponsiveContainer width="100%" height={180}>
+                          <BarChart data={blacklistTrends} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="week" />
+                            <YAxis allowDecimals={false} />
+                            <RechartsTooltip />
+                            <Bar dataKey="blocks" fill="#d97706" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                        <p className="text-sm text-amber-800 mt-2">
+                          Weekly counts of users added to blacklist to monitor security filters.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Password Reset Requests Tab */}
           <TabsContent value="passwordReset">
             <Card>
               <CardHeader>
@@ -733,7 +799,6 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
-          {/* Settings Tab */}
           <TabsContent value="settings">
             <Card>
               <CardHeader>
