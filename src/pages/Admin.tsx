@@ -8,20 +8,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { BottleCap } from "@/components/BottleCap";
-import { 
-  Ban, LogOut, Users, ClipboardList, Shield, BarChart3, 
+import {
+  Ban, LogOut, Users, ClipboardList, Shield, BarChart3,
   Settings, Award, AlertTriangle, Image, Upload, Calendar,
   TrendingUp, ChartPie, Clock, MailCheck, ShieldAlert
 } from "lucide-react";
 import { toast } from "sonner";
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
-  ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
+  ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, ScatterChart, Scatter
 } from 'recharts';
 
 export default function Admin() {
-  const { user, logout, isAuthenticated, getAllUsers, getClaimLogs, 
-          passwordResetRequests = [], confirmPasswordResetRequest } = useAuth() as AuthContextType;
+  const { user, logout, isAuthenticated, getAllUsers, getClaimLogs,
+    passwordResetRequests = [], confirmPasswordResetRequest } = useAuth() as AuthContextType;
   const [users, setUsers] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [blacklist, setBlacklist] = useState<string[]>([]);
@@ -41,7 +41,7 @@ export default function Admin() {
     { name: 'Sat', claims: 41 },
     { name: 'Sun', claims: 35 },
   ]);
-  
+
   const [userGrowthData, setUserGrowthData] = useState([
     { day: '4/10', users: 120 },
     { day: '4/11', users: 132 },
@@ -51,7 +51,7 @@ export default function Admin() {
     { day: '4/15', users: 193 },
     { day: '4/16', users: 210 },
   ]);
-  
+
   const [streakDistributionData, setStreakDistributionData] = useState([
     { name: '1 day', value: 45 },
     { name: '2-3 days', value: 25 },
@@ -59,9 +59,9 @@ export default function Admin() {
     { name: '1-2 weeks', value: 10 },
     { name: '2+ weeks', value: 5 },
   ]);
-  
+
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A569BD'];
-  
+
   const [claimTimeData, setClaimTimeData] = useState([
     { hour: '00:00', claims: 10 },
     { hour: '03:00', claims: 5 },
@@ -72,7 +72,7 @@ export default function Admin() {
     { hour: '18:00', claims: 25 },
     { hour: '21:00', claims: 15 },
   ]);
-  
+
   const [suspiciousLoginAttempts, setSuspiciousLoginAttempts] = useState([
     { day: '4/10', attempts: 3 },
     { day: '4/11', attempts: 1 },
@@ -91,6 +91,33 @@ export default function Admin() {
     { week: 'Week 2', blocks: 5 },
     { week: 'Week 3', blocks: 3 },
     { week: 'Week 4', blocks: 6 },
+  ]);
+
+  const [monthlyClaimCategories, setMonthlyClaimCategories] = useState([
+    { month: 'Jan', productA: 60, productB: 40, productC: 20 },
+    { month: 'Feb', productA: 80, productB: 45, productC: 25 },
+    { month: 'Mar', productA: 75, productB: 60, productC: 30 },
+    { month: 'Apr', productA: 90, productB: 70, productC: 40 },
+  ]);
+
+  const [weeklyActiveUsers, setWeeklyActiveUsers] = useState([
+    { week: 'Week 1', active: 100 },
+    { week: 'Week 2', active: 115 },
+    { week: 'Week 3', active: 120 },
+    { week: 'Week 4', active: 110 },
+  ]);
+
+  const [claimSuccessRate, setClaimSuccessRate] = useState([
+    { name: 'Success', value: 78 },
+    { name: 'Failed', value: 22 },
+  ]);
+
+  const [userStreakVsClaims, setUserStreakVsClaims] = useState([
+    { streak: 1, claims: 5 },
+    { streak: 3, claims: 15 },
+    { streak: 5, claims: 25 },
+    { streak: 7, claims: 40 },
+    { streak: 10, claims: 55 },
   ]);
 
   const [activeUserPercentage, setActiveUserPercentage] = useState<number>(0);
@@ -140,16 +167,16 @@ export default function Admin() {
     navigate("/login");
   };
 
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = users.filter(user =>
     user.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Never";
     const date = new Date(dateString);
-    return date.toLocaleString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -157,7 +184,7 @@ export default function Admin() {
   };
 
   const addToBlacklist = (username: string) => {
-    if(blacklist.includes(username)) return;
+    if (blacklist.includes(username)) return;
     const newBlacklist = [...blacklist, username];
     setBlacklist(newBlacklist);
     localStorage.setItem("bottlecaps_blacklist", JSON.stringify(newBlacklist));
@@ -219,9 +246,9 @@ export default function Admin() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              className="text-gray-600" 
+            <Button
+              variant="ghost"
+              className="text-gray-600"
               onClick={handleLogout}
             >
               <LogOut className="h-5 w-5 mr-1" />
@@ -246,7 +273,7 @@ export default function Admin() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -260,7 +287,7 @@ export default function Admin() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -274,7 +301,7 @@ export default function Admin() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -289,7 +316,7 @@ export default function Admin() {
             </CardContent>
           </Card>
         </div>
-        
+
         <Tabs defaultValue="users">
           <TabsList className="grid w-full grid-cols-6 mb-8">
             <TabsTrigger value="users" className="flex items-center gap-2">
@@ -325,7 +352,7 @@ export default function Admin() {
               <span>View More</span>
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="users">
             <Card>
               <CardHeader>
@@ -395,7 +422,7 @@ export default function Admin() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="claims">
             <Card>
               <CardHeader>
@@ -443,7 +470,7 @@ export default function Admin() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="blacklist">
             <Card>
               <CardHeader>
@@ -513,7 +540,7 @@ export default function Admin() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="image">
             <Card>
               <CardHeader>
@@ -915,6 +942,87 @@ export default function Admin() {
                       Percentage of users active in the last claim period.
                     </p>
                   </div>
+
+                  <div>
+                    <h3 className="font-semibold mb-3">Community Engagement & Content</h3>
+                    <p className="text-gray-700">
+                      These additional stats highlight how engaged and active your user community is, useful for sharing positive platform growth with stakeholders.
+                    </p>
+                    {/* Here you could add more content or charts in the future */}
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold mb-3">Monthly Claims by Category</h3>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <BarChart
+                        data={monthlyClaimCategories}
+                        margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+                        stackOffset="expand"
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis tickFormatter={(value) => `${(value * 100).toFixed(0)}%`} />
+                        <RechartsTooltip formatter={(value: number) => `${value}`} />
+                        <Bar dataKey="productA" stackId="a" fill="#8884d8" />
+                        <Bar dataKey="productB" stackId="a" fill="#82ca9d" />
+                        <Bar dataKey="productC" stackId="a" fill="#ffc658" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold mb-3">Weekly Active Users</h3>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <LineChart
+                        data={weeklyActiveUsers}
+                        margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="week" />
+                        <YAxis />
+                        <RechartsTooltip />
+                        <Line type="monotone" dataKey="active" stroke="#8884d8" strokeWidth={2} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold mb-3">Claim Success Rate</h3>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <PieChart>
+                        <Pie
+                          data={claimSuccessRate}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, percent }) => `${name}: ${(percent! * 100).toFixed(1)}%`}
+                        >
+                          <Cell fill="#4ade80" />
+                          <Cell fill="#f87171" />
+                        </Pie>
+                        <RechartsTooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold mb-3">User Streak vs Total Claims</h3>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <ScatterChart
+                        margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" dataKey="streak" name="Streak" />
+                        <YAxis type="number" dataKey="claims" name="Claims" />
+                        <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} />
+                        <Scatter name="User data" data={userStreakVsClaims} fill="#8884d8" />
+                      </ScatterChart>
+                    </ResponsiveContainer>
+                  </div>
+
                 </div>
               </CardContent>
             </Card>
