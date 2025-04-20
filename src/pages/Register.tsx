@@ -8,13 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { BottleCap } from "@/components/BottleCap";
-import { UserPlus } from "lucide-react";
+import { UserPlus, HelpCircle } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 export default function Register() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [ethAddress, setEthAddress] = useState("");
+  const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -92,6 +94,27 @@ export default function Register() {
                 onChange={(e) => setUsername(e.target.value)}
               />
             </div>
+
+            <div className="space-y-2 flex items-center">
+              <Label htmlFor="email">Email Address (optional)</Label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" aria-label="Email info" className="ml-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bottlecap-blue rounded">
+                    <HelpCircle className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  This email address is optional but recommended to receive updates and information about the project and upcoming events.
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <Input
+              id="email"
+              type="email"
+              placeholder="Enter your email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
 
             <div className="space-y-2">
               <Label htmlFor="ethAddress">Base Chain ETH Address (optional)</Label>
