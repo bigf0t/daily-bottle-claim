@@ -290,7 +290,7 @@ export default function Admin() {
           </Card>
         </div>
         
-        <Tabs baseId="admin-tabs" defaultValue="users">
+        <Tabs defaultValue="users">
           <TabsList className="grid w-full grid-cols-6 mb-8">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
