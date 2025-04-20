@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -99,11 +98,15 @@ export default function Register() {
               <Label htmlFor="email">Email Address (optional)</Label>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button type="button" aria-label="Email info" className="ml-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bottlecap-blue rounded">
+                  <button
+                    type="button"
+                    aria-label="Email info"
+                    className="ml-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bottlecap-blue rounded"
+                  >
                     <HelpCircle className="h-4 w-4" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs">
+                <TooltipContent side="top" className="max-w-xs whitespace-normal break-words">
                   This email address is optional but recommended to receive updates and information about the project and upcoming events.
                 </TooltipContent>
               </Tooltip>
@@ -182,4 +185,3 @@ export default function Register() {
     </div>
   );
 }
-
