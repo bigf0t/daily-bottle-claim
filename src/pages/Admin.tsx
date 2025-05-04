@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { StatCard } from "@/components/StatCard";
 import { BottleCap } from "@/components/BottleCap";
+import { UserHoverCard } from "@/components/UserHoverCard";
 import {
   Ban, LogOut, Users, ClipboardList, Shield, BarChart3,
   Settings, Award, AlertTriangle, Image, Upload, Calendar,
@@ -542,29 +543,42 @@ export default function Admin() {
                       {filteredUsers.length > 0 ? (
                         filteredUsers.map((user) => (
                           <TableRow key={user.id}>
-                            <TableCell className="font-medium">{user.username}</TableCell>
+                            <TableCell className="font-medium">
+                              <UserHoverCard user={user} asLink={true}>
+                                {user.username}
+                              </UserHoverCard>
+                            </TableCell>
                             <TableCell>{user.totalClaims}</TableCell>
                             <TableCell>{user.streak}</TableCell>
                             <TableCell>{formatDate(user.lastClaim)}</TableCell>
                             <TableCell>{formatDate(user.createdAt)}</TableCell>
                             <TableCell>
-                              {blacklist.includes(user.username) ? (
+                              <div className="flex gap-2">
                                 <Button 
                                   variant="outline" 
                                   size="sm"
-                                  onClick={() => removeFromBlacklist(user.username)}
+                                  onClick={() => navigate(`/user/${user.id}`)}
                                 >
-                                  Unblock
+                                  View
                                 </Button>
-                              ) : (
-                                <Button 
-                                  variant="destructive" 
-                                  size="sm"
-                                  onClick={() => addToBlacklist(user.username)}
-                                >
-                                  Block
-                                </Button>
-                              )}
+                                {blacklist.includes(user.username) ? (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => removeFromBlacklist(user.username)}
+                                  >
+                                    Unblock
+                                  </Button>
+                                ) : (
+                                  <Button 
+                                    variant="destructive" 
+                                    size="sm"
+                                    onClick={() => addToBlacklist(user.username)}
+                                  >
+                                    Block
+                                  </Button>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))
@@ -1242,4 +1256,3 @@ export default function Admin() {
     </div>
   );
 }
-
