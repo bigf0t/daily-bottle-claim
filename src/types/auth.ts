@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   username: string;
@@ -10,6 +9,7 @@ export interface User {
   usernameUpdatedAt?: string; // New field to track when username last changed
   ethAddress?: string;
   email?: string;
+  profilePicture?: string; // New field for profile picture URL or data
 }
 
 export interface AuthContextType {

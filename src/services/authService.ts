@@ -1,3 +1,4 @@
+
 import { User, ClaimLog } from "@/types/auth";
 import { getCurrentUTCDate } from "@/utils/authUtils";
 
@@ -86,12 +87,13 @@ export const loginUser = async (username: string, password: string): Promise<Use
   return existingUser;
 };
 
-// Adjust registerUser to make ethAddress optional:
-
+// Updated registerUser to handle profile pictures and email
 export const registerUser = async (
   username: string,
   ethAddress: string | undefined,
-  password: string
+  password: string,
+  email?: string,
+  profilePicture?: string
 ): Promise<User> => {
   const existingUsers = JSON.parse(localStorage.getItem("bottlecaps_users") || "[]");
 
@@ -99,7 +101,7 @@ export const registerUser = async (
     throw new Error("Username already exists.");
   }
 
-  const newUser: User & { password: string; ethAddress?: string } = {
+  const newUser: User & { password: string } = {
     id: Date.now().toString(),
     username,
     totalClaims: 0,
@@ -112,6 +114,14 @@ export const registerUser = async (
 
   if (ethAddress && ethAddress.trim() !== "") {
     newUser.ethAddress = ethAddress;
+  }
+
+  if (email && email.trim() !== "") {
+    newUser.email = email;
+  }
+
+  if (profilePicture) {
+    newUser.profilePicture = profilePicture;
   }
 
   existingUsers.push(newUser);

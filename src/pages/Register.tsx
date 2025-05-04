@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { BottleCap } from "@/components/BottleCap";
-import { UserPlus, HelpCircle } from "lucide-react";
+import { UserPlus, HelpCircle, Camera, ImageIcon } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Register() {
   const [username, setUsername] = useState("");
@@ -16,6 +18,7 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [ethAddress, setEthAddress] = useState("");
   const [email, setEmail] = useState("");
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -28,6 +31,18 @@ export default function Register() {
     }
     // Simple check: length 42, starts with "0x" and hex chars
     return /^0x[a-fA-F0-9]{40}$/.test(address);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Convert the image to a Data URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePicture(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,8 +66,8 @@ export default function Register() {
     try {
       setIsLoading(true);
       setError("");
-      // Register the user first
-      await registerUser(username, ethAddress.trim(), password);
+      // Register the user with the profile picture
+      await registerUser(username, ethAddress.trim(), password, email.trim() || undefined, profilePicture || undefined);
       // Then login
       await login(username, password);
       navigate("/dashboard");
@@ -82,6 +97,35 @@ export default function Register() {
 
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            {/* Profile Picture Upload */}
+            <div className="flex flex-col items-center space-y-3">
+              <Label htmlFor="profilePicture">Profile Picture (optional)</Label>
+              <Avatar className="h-24 w-24 cursor-pointer hover:opacity-90 transition-opacity">
+                {profilePicture ? (
+                  <AvatarImage src={profilePicture} alt="Profile preview" />
+                ) : (
+                  <AvatarFallback className="bg-bottlecap-blue/10">
+                    <ImageIcon className="h-12 w-12 text-bottlecap-blue/50" />
+                  </AvatarFallback>
+                )}
+              </Avatar>
+              <div className="flex items-center">
+                <Label 
+                  htmlFor="profilePicture" 
+                  className="flex items-center gap-2 px-4 py-2 bg-bottlecap-blue text-white rounded-md cursor-pointer hover:bg-blue-600 transition-colors"
+                >
+                  <Camera className="h-4 w-4" />
+                  {profilePicture ? "Change Picture" : "Upload Picture"}
+                </Label>
+                <Input
+                  id="profilePicture"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+              </div>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
