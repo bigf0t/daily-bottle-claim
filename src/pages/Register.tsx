@@ -8,8 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { BottleCap } from "@/components/BottleCap";
-import { UserPlus, HelpCircle, Camera, ImageIcon } from "lucide-react";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { UserPlus, Camera, ImageIcon } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Register() {
@@ -138,30 +137,19 @@ export default function Register() {
               />
             </div>
 
-            <div className="space-y-2 flex items-center">
+            <div className="space-y-2">
               <Label htmlFor="email">Email Address (optional)</Label>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Email info"
-                    className="ml-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bottlecap-blue rounded"
-                  >
-                    <HelpCircle className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs whitespace-normal break-words">
-                  This email address is optional but recommended to receive updates and information about the project and upcoming events.
-                </TooltipContent>
-              </Tooltip>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Optional but recommended to receive project updates and information about upcoming events.
+              </p>
             </div>
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter your email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
 
             <div className="space-y-2">
               <Label htmlFor="ethAddress">Base Chain ETH Address (optional)</Label>

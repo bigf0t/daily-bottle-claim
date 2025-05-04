@@ -8,9 +8,11 @@ import { Separator } from "@/components/ui/separator";
 import { ClaimModal } from "@/components/ClaimModal";
 import { BottleCap } from "@/components/BottleCap";
 import { HoneypotButton } from "@/components/HoneypotButton";
-import { CalendarDays, Star, Clock, LogOut, Award, Edit, Check, X } from "lucide-react";
+import { CalendarDays, Star, Clock, LogOut, Award, Edit, Check, X, Camera, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Dashboard() {
   const { 
@@ -29,6 +31,7 @@ export default function Dashboard() {
   const [editEmail, setEditEmail] = useState(user?.email || "");
   const [editPassword, setEditPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [editProfilePicture, setEditProfilePicture] = useState<string | null>(user?.profilePicture || null);
   const [editError, setEditError] = useState("");
   const [editSuccess, setEditSuccess] = useState("");
 
@@ -36,6 +39,7 @@ export default function Dashboard() {
   const [totalClaimsToday, setTotalClaimsToday] = useState(0);
   const [averageStreak, setAverageStreak] = useState(0);
   const [activeUsersToday, setActiveUsersToday] = useState(0);
+  const [showAllData, setShowAllData] = useState(false);
 
   // Redirect to login if not authenticated or redirect admin to admin page
   useEffect(() => {
@@ -63,10 +67,12 @@ export default function Dashboard() {
     let activeUsersSet = new Set<string>();
 
     const todayUTCDateStr = new Date().toISOString().split("T")[0];
+    const oneWeekAgoStr = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
     logs.forEach((log: any) => {
       if (log.result === "success") {
         const logDate = log.timestamp.split("T")[0];
+        // Only count logs from today for "today" stats
         if (logDate === todayUTCDateStr) {
           claimsToday++;
           activeUsersSet.add(log.username);
@@ -81,7 +87,7 @@ export default function Dashboard() {
     setTotalClaimsToday(claimsToday);
     setActiveUsersToday(activeUsersSet.size);
     setAverageStreak(users.length ? (streaksSum / users.length) : 0);
-  }, [getClaimLogs, getAllUsers]);
+  }, [getClaimLogs, getAllUsers, showAllData]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Never";
@@ -99,6 +105,19 @@ export default function Dashboard() {
   const handleLogout = () => {
     logout();
     navigate("/login");
+  };
+
+  // Handle profile picture change
+  const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Convert the image to a Data URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditProfilePicture(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Handle save edit account info
@@ -146,6 +165,9 @@ export default function Dashboard() {
     }
     if (editEmail !== user?.email) {
       updatedFields.email = editEmail.trim();
+    }
+    if (editProfilePicture !== user?.profilePicture) {
+      updatedFields.profilePicture = editProfilePicture;
     }
 
     // Password change requires admin approval by sending a reset request (simulate)
@@ -213,6 +235,36 @@ export default function Dashboard() {
           <CardContent>
             {editing ? (
               <div className="space-y-6">
+                {/* Profile Picture Edit */}
+                <div className="flex flex-col items-center space-y-3">
+                  <Label htmlFor="profilePictureEdit">Profile Picture</Label>
+                  <Avatar className="h-24 w-24 cursor-pointer hover:opacity-90 transition-opacity">
+                    {editProfilePicture ? (
+                      <AvatarImage src={editProfilePicture} alt="Profile preview" />
+                    ) : (
+                      <AvatarFallback className="bg-bottlecap-blue/10">
+                        <User className="h-12 w-12 text-bottlecap-blue/50" />
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <div className="flex items-center">
+                    <Label 
+                      htmlFor="profilePictureEdit" 
+                      className="flex items-center gap-2 px-4 py-2 bg-bottlecap-blue text-white rounded-md cursor-pointer hover:bg-blue-600 transition-colors"
+                    >
+                      <Camera className="h-4 w-4" />
+                      {editProfilePicture ? "Change Picture" : "Upload Picture"}
+                    </Label>
+                    <Input
+                      id="profilePictureEdit"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleProfilePictureChange}
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <Label htmlFor="username">Username (once per 30 days)</Label>
                   <Input
@@ -262,7 +314,16 @@ export default function Dashboard() {
             ) : (
               <div className="flex flex-col space-y-3">
                 <div className="flex items-center">
-                  <div className="text-4xl font-bold mr-2">{user.username}</div>
+                  <Avatar className="h-16 w-16 mr-4">
+                    {user.profilePicture ? (
+                      <AvatarImage src={user.profilePicture} alt={user.username} />
+                    ) : (
+                      <AvatarFallback className="bg-bottlecap-blue/10">
+                        <User className="h-8 w-8 text-bottlecap-blue/50" />
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <div className="text-4xl font-bold">{user.username}</div>
                 </div>
 
                 <Separator />
@@ -313,26 +374,54 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* New analytics card */}
+        {/* Analytics card with tabs */}
         <Card className="shadow-md">
           <CardHeader>
             <CardTitle>Community Analytics</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="p-3 bg-green-50 rounded-lg">
-                <h3 className="text-lg font-semibold">Total Claims Today</h3>
-                <p className="text-2xl font-bold text-green-700">{totalClaimsToday}</p>
-              </div>
-              <div className="p-3 bg-yellow-50 rounded-lg">
-                <h3 className="text-lg font-semibold">Active Users Today</h3>
-                <p className="text-2xl font-bold text-yellow-700">{activeUsersToday}</p>
-              </div>
-              <div className="p-3 bg-indigo-50 rounded-lg">
-                <h3 className="text-lg font-semibold">Average Streak</h3>
-                <p className="text-2xl font-bold text-indigo-700">{averageStreak.toFixed(1)}</p>
-              </div>
-            </div>
+            <Tabs defaultValue="week" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="week">Last 7 Days</TabsTrigger>
+                <TabsTrigger value="all">All Time</TabsTrigger>
+              </TabsList>
+              <TabsContent value="week">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <h3 className="text-lg font-semibold">Total Claims Today</h3>
+                    <p className="text-2xl font-bold text-green-700">{totalClaimsToday}</p>
+                  </div>
+                  <div className="p-3 bg-yellow-50 rounded-lg">
+                    <h3 className="text-lg font-semibold">Active Users Today</h3>
+                    <p className="text-2xl font-bold text-yellow-700">{activeUsersToday}</p>
+                  </div>
+                  <div className="p-3 bg-indigo-50 rounded-lg">
+                    <h3 className="text-lg font-semibold">Average Streak</h3>
+                    <p className="text-2xl font-bold text-indigo-700">{averageStreak.toFixed(1)}</p>
+                  </div>
+                </div>
+              </TabsContent>
+              <TabsContent value="all">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <h3 className="text-lg font-semibold">Total Claims All Time</h3>
+                    <p className="text-2xl font-bold text-green-700">
+                      {getClaimLogs().filter((log: any) => log.result === "success").length}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-yellow-50 rounded-lg">
+                    <h3 className="text-lg font-semibold">Total Active Users</h3>
+                    <p className="text-2xl font-bold text-yellow-700">
+                      {new Set(getClaimLogs().map((log: any) => log.username)).size}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-indigo-50 rounded-lg">
+                    <h3 className="text-lg font-semibold">All-Time Average</h3>
+                    <p className="text-2xl font-bold text-indigo-700">{averageStreak.toFixed(1)}</p>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
@@ -400,4 +489,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
