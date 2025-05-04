@@ -3,7 +3,8 @@ import React from "react";
 import { User } from "@/types/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { CalendarIcon, BottleCap, Award } from "lucide-react";
+import { CalendarIcon, Award } from "lucide-react";
+import { BottleCap } from "@/components/BottleCap";
 
 interface UserHoverCardProps {
   user: User;
@@ -48,7 +49,7 @@ export const UserHoverCard = ({ user, children, asLink = false }: UserHoverCardP
             </div>
             <div className="flex gap-3 mt-2">
               <div className="flex items-center">
-                <BottleCap className="mr-1 h-4 w-4 text-blue-600" />
+                <BottleCap className="mr-1 h-4 w-4" color="blue" size="sm" />
                 <span className="text-sm font-medium">{user.totalClaims} claims</span>
               </div>
               <div className="flex items-center">
