@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { registerUser } from "@/services/authService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { BottleCap } from "@/components/BottleCap";
 import { UserPlus, Camera, ImageIcon } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { toast } from "sonner";
 
 export default function Register() {
   const [username, setUsername] = useState("");
@@ -22,7 +22,7 @@ export default function Register() {
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
-  const { login } = useAuth() as any;
+  const { register } = useAuth();
 
   const isValidEthAddress = (address: string) => {
     if (!address.trim()) {
@@ -52,6 +52,11 @@ export default function Register() {
       return;
     }
 
+    if (!email.trim()) {
+      setError("Email is required");
+      return;
+    }
+
     if (!isValidEthAddress(ethAddress.trim())) {
       setError("A valid Base Chain ETH address is required");
       return;
@@ -65,11 +70,22 @@ export default function Register() {
     try {
       setIsLoading(true);
       setError("");
-      // Register the user with the profile picture
-      await registerUser(username, ethAddress.trim(), password, email.trim() || undefined, profilePicture || undefined);
-      // Then login
-      await login(username, password);
-      navigate("/dashboard");
+      
+      if (!register) {
+        throw new Error("Registration functionality is not available");
+      }
+      
+      // Register the user
+      await register(
+        username, 
+        email,
+        password, 
+        ethAddress.trim() || undefined, 
+        profilePicture || undefined
+      );
+      
+      toast.success("Account created successfully! You can now log in.");
+      navigate("/login");
     } catch (err: any) {
       setError(err.message || "Registration failed. Please try again.");
       console.error(err);

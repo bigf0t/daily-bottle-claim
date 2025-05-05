@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   username: string;
@@ -6,10 +7,10 @@ export interface User {
   lastClaim: string | null;
   isAdmin: boolean;
   createdAt?: string;
-  usernameUpdatedAt?: string; // New field to track when username last changed
+  usernameUpdatedAt?: string;
   ethAddress?: string;
   email?: string;
-  profilePicture?: string; // New field for profile picture URL or data
+  profilePicture?: string;
 }
 
 export interface AuthContextType {
@@ -18,18 +19,25 @@ export interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
-  processClaim?: () => "success" | "already_claimed" | undefined;
+  processClaim?: () => Promise<"success" | "already_claimed" | undefined>;
   isClaimAllowed?: boolean;
-  getAllUsers?: () => User[];
-  getClaimLogs?: () => any[];
-  updateUserData?: (user: User) => void;
-
+  getAllUsers?: () => Promise<User[]>;
+  getClaimLogs?: () => Promise<any[]>;
+  updateUserData?: (user: User) => Promise<void>;
+  register?: (
+    username: string, 
+    email: string, 
+    password: string,
+    ethAddress?: string,
+    profilePicture?: string
+  ) => Promise<User>;
+  
   passwordResetRequests?: any[]; 
   confirmPasswordResetRequest?: (id: string) => void;
   submitPasswordResetRequest?: (username: string) => void;
 
   canUpdateUsername?: () => boolean;
-  updateAccountInfo?: (updatedFields: Partial<User>) => void;
+  updateAccountInfo?: (updatedFields: Partial<User>) => Promise<void>;
 }
 
 export interface ClaimLog {

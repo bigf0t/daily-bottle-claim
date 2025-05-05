@@ -9,7 +9,89 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      claim_logs: {
+        Row: {
+          id: string
+          ip_address: string | null
+          result: string
+          timestamp: string
+          user_id: string | null
+          username: string
+        }
+        Insert: {
+          id?: string
+          ip_address?: string | null
+          result: string
+          timestamp?: string
+          user_id?: string | null
+          username: string
+        }
+        Update: {
+          id?: string
+          ip_address?: string | null
+          result?: string
+          timestamp?: string
+          user_id?: string | null
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          created_at: string
+          email: string | null
+          eth_address: string | null
+          id: string
+          is_admin: boolean | null
+          last_claim: string | null
+          password_hash: string
+          profile_picture: string | null
+          streak: number | null
+          total_claims: number | null
+          updated_at: string
+          username: string
+          username_updated_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          eth_address?: string | null
+          id?: string
+          is_admin?: boolean | null
+          last_claim?: string | null
+          password_hash: string
+          profile_picture?: string | null
+          streak?: number | null
+          total_claims?: number | null
+          updated_at?: string
+          username: string
+          username_updated_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          eth_address?: string | null
+          id?: string
+          is_admin?: boolean | null
+          last_claim?: string | null
+          password_hash?: string
+          profile_picture?: string | null
+          streak?: number | null
+          total_claims?: number | null
+          updated_at?: string
+          username?: string
+          username_updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

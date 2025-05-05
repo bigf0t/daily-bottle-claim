@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label";
 import { BottleCap } from "@/components/BottleCap";
 import { LogIn } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -16,7 +17,7 @@ export default function Login() {
   const [error, setError] = useState("");
   
   const navigate = useNavigate();
-  const { login } = useAuth() as any;
+  const { login } = useAuth();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,9 +31,11 @@ export default function Login() {
       setIsLoading(true);
       setError("");
       await login(username, password);
+      toast.success("Logged in successfully!");
       navigate("/dashboard");
-    } catch (err) {
-      setError("No such username or invalid password.");
+    } catch (err: any) {
+      setError(err.message || "Login failed. Please check your credentials.");
+      toast.error("Login failed. Please check your credentials.");
       console.error(err);
     } finally {
       setIsLoading(false);
