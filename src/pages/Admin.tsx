@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -163,36 +162,33 @@ export default function Admin() {
 
   const navigate = useNavigate();
 
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user?.isAdmin) {
       navigate("/login");
       return;
     }
-    if (user && !user.isAdmin) {
-      navigate("/dashboard");
-    }
-  }, [isAuthenticated, user, navigate]);
 
-  useEffect(() => {
-    if (user?.isAdmin) {
-      const allUsers = getAllUsers();
-      setUsers(allUsers);
-      const allLogs = getClaimLogs();
-      setLogs(allLogs);
-      const storedBlacklist = JSON.parse(localStorage.getItem("bottlecaps_blacklist") || "[]");
-      setBlacklist(storedBlacklist);
-      const savedClaimImage = localStorage.getItem("bottlecaps_claim_image");
-      if (savedClaimImage) {
-        setClaimImage(savedClaimImage);
+    setIsLoading(true);
+    
+    const fetchData = async () => {
+      try {
+        const fetchedUsers = await getAllUsers();
+        const fetchedLogs = await getClaimLogs();
+        
+        setUsers(fetchedUsers);
+        setLogs(fetchedLogs);
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error fetching admin data:", error);
+        toast.error("Failed to fetch admin data");
+        setIsLoading(false);
       }
-      if (allUsers && allUsers.length > 0) {
-        const activeCount = allUsers.filter(u => u.lastClaim !== null).length;
-        setActiveUserPercentage((activeCount / allUsers.length) * 100);
-      } else {
-        setActiveUserPercentage(0);
-      }
-    }
-  }, [user, getAllUsers, getClaimLogs]);
+    };
+    
+    fetchData();
+  }, [isAuthenticated, user, navigate, getAllUsers, getClaimLogs]);
 
   const handleLogout = () => {
     logout();
@@ -390,8 +386,13 @@ export default function Admin() {
     );
   }
 
+  const userStats = {
+    totalUsers: users.length,
+    activeUsers: users.filter(u => u.totalClaims > 0).length,
+    adminUsers: users.filter(u => u.isAdmin).length
+  };
+
   const totalClaims = users.reduce((sum, user) => sum + user.totalClaims, 0);
-  const activeUsers = users.filter(user => user.lastClaim !== null).length;
   const maxStreak = users.reduce((max, user) => (user.streak > max ? user.streak : max), 0);
 
   return (
@@ -439,7 +440,7 @@ export default function Admin() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-500">Active Users</p>
-                  <h3 className="text-3xl font-bold">{activeUsers}</h3>
+                  <h3 className="text-3xl font-bold">{userStats.activeUsers}</h3>
                 </div>
                 <div className="p-3 bg-green-50 rounded-full">
                   <Users className="h-6 w-6 text-green-500" />

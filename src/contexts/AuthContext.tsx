@@ -4,6 +4,7 @@ import { User, AuthContextType } from "@/types/auth";
 import { isClaimAllowed, getCurrentUTCDate } from "@/utils/authUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { mapDatabaseUserToAppUser, mapAppUserToDatabaseUser } from "@/utils/userMappers";
 
 // Create the auth context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,7 +65,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      setUser(data);
+      // Map database user to our app's User type
+      const appUser = mapDatabaseUserToAppUser(data);
+      setUser(appUser);
     } catch (error) {
       console.error("Error in fetchUserData:", error);
       setUser(null);
@@ -113,9 +116,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     
     try {
+      // Convert User object to database format
+      const dbUser = mapAppUserToDatabaseUser(updatedUser);
+      
       const { error } = await supabase
         .from('users')
-        .update(updatedUser)
+        .update(dbUser)
         .eq('id', user.id);
       
       if (error) throw error;
@@ -158,13 +164,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       try {
         // Update the user in the database
+        const dbUser = {
+          total_claims: updatedUser.totalClaims,
+          streak: updatedUser.streak,
+          last_claim: updatedUser.lastClaim
+        };
+        
         const { error: updateError } = await supabase
           .from('users')
-          .update({
-            totalClaims: updatedUser.totalClaims,
-            streak: updatedUser.streak,
-            lastClaim: updatedUser.lastClaim
-          })
+          .update(dbUser)
           .eq('id', user.id);
         
         if (updateError) throw updateError;
@@ -216,12 +224,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     profilePicture?: string
   ): Promise<User> => {
     try {
-      // First check if username already exists
+      // Check if username already exists
       const { data: existingUser, error: checkError } = await supabase
         .from('users')
         .select('username')
         .eq('username', username)
-        .single();
+        .maybeSingle();
 
       if (existingUser) {
         throw new Error("Username already exists.");
@@ -251,7 +259,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         streak: 0,
         last_claim: null,
         is_admin: false,
-        created_at: getCurrentUTCDate()
+        created_at: getCurrentUTCDate(),
+        username_updated_at: null
       };
 
       const { error: insertError } = await supabase
@@ -260,20 +269,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (insertError) {
         // If creating the profile fails, we should clean up the auth user
-        await supabase.auth.admin.deleteUser(authData.user.id);
+        try {
+          // Note: This is using the client, so it might not work. In production, you'd use an admin function
+          await supabase.auth.admin.deleteUser(authData.user.id);
+        } catch (e) {
+          console.error("Failed to clean up auth user after profile creation error:", e);
+        }
         throw insertError;
       }
 
-      // Fetch the complete user data to return
-      const { data: createdUser, error: fetchError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authData.user.id)
-        .single();
-      
-      if (fetchError) throw fetchError;
-
-      return createdUser as User;
+      // Return mapped user object
+      return mapDatabaseUserToAppUser(newUser);
     } catch (error: any) {
       console.error("Registration error:", error);
       throw new Error(error.message || "Registration failed");
@@ -294,7 +300,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) throw error;
       
-      return data || [];
+      // Map each database user to our app's User type
+      return (data || []).map(dbUser => mapDatabaseUserToAppUser(dbUser));
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("Failed to fetch users");
@@ -338,11 +345,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     
     try {
-      let updates: any = { ...updatedFields };
+      let updates = mapAppUserToDatabaseUser(updatedFields);
       
       // Update usernameUpdatedAt if username changed
       if (updatedFields.username && updatedFields.username !== user.username) {
-        updates.usernameUpdatedAt = getCurrentUTCDate();
+        updates.username_updated_at = getCurrentUTCDate();
       }
       
       const { error } = await supabase
@@ -352,7 +359,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) throw error;
       
-      setUser({ ...user, ...updates });
+      setUser({ ...user, ...updatedFields });
       toast.success("Account information updated successfully");
     } catch (error) {
       console.error("Error updating account info:", error);
