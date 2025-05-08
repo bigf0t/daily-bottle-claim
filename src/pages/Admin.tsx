@@ -15,8 +15,8 @@ import { UserHoverCard } from "@/components/UserHoverCard";
 import {
   Ban, LogOut, Users, ClipboardList, Shield, BarChart3,
   Settings, Award, AlertTriangle, Image, Upload, Calendar,
-  TrendingUp, ChartPie, Clock, MailCheck, ShieldAlert, 
-  Maximize2, ChevronLeft, ArrowLeft
+  TrendingUp, ChartPie, Clock, MailCheck, ShieldAlert,
+  Maximize2, ChevronLeft, ArrowLeft, Gift
 } from "lucide-react";
 import { toast } from "sonner";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -27,7 +27,8 @@ import {
 
 export default function Admin() {
   const { user, logout, isAuthenticated, getAllUsers, getClaimLogs,
-    passwordResetRequests = [], confirmPasswordResetRequest } = useAuth() as AuthContextType;
+    passwordResetRequests = [], confirmPasswordResetRequest,
+    currentClaimAmount = 1, updateClaimAmount } = useAuth() as AuthContextType;
   const [users, setUsers] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [blacklist, setBlacklist] = useState<string[]>([]);
@@ -36,7 +37,8 @@ export default function Admin() {
   const [claimImage, setClaimImage] = useState<string>("https://source.unsplash.com/random/1200x800/?drink,beverage");
   const [imageUrl, setImageUrl] = useState("");
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
-  
+  const [newClaimAmount, setNewClaimAmount] = useState<number>(currentClaimAmount);
+
   // Chart dialogs open state
   const [openChartDialog, setOpenChartDialog] = useState<string | null>(null);
 
@@ -49,7 +51,7 @@ export default function Admin() {
     { name: 'Sat', claims: 41 },
     { name: 'Sun', claims: 35 },
   ]);
-  
+
   const [historicalDailyClaimData, setHistoricalDailyClaimData] = useState([
     { name: 'Week 1', Mon: 15, Tue: 20, Wed: 18, Thu: 22, Fri: 26, Sat: 30, Sun: 25 },
     { name: 'Week 2', Mon: 18, Tue: 23, Wed: 20, Thu: 25, Fri: 30, Sat: 35, Sun: 27 },
@@ -66,7 +68,7 @@ export default function Admin() {
     { day: '4/15', users: 193 },
     { day: '4/16', users: 210 },
   ]);
-  
+
   const [historicalUserGrowthData, setHistoricalUserGrowthData] = useState([
     { month: 'Jan', users: 50 },
     { month: 'Feb', users: 75 },
@@ -84,7 +86,7 @@ export default function Admin() {
     { name: '1-2 weeks', value: 10 },
     { name: '2+ weeks', value: 5 },
   ]);
-  
+
   const [historicalStreakDistributionData, setHistoricalStreakDistributionData] = useState([
     { month: 'Jan', '1 day': 60, '2-3 days': 20, '4-7 days': 10, '1-2 weeks': 7, '2+ weeks': 3 },
     { month: 'Feb', '1 day': 55, '2-3 days': 22, '4-7 days': 12, '1-2 weeks': 8, '2+ weeks': 3 },
@@ -104,7 +106,7 @@ export default function Admin() {
     { hour: '18:00', claims: 25 },
     { hour: '21:00', claims: 15 },
   ]);
-  
+
   const [historicalClaimTimeData, setHistoricalClaimTimeData] = useState([
     { month: 'Jan', '00:00': 5, '03:00': 2, '06:00': 4, '09:00': 15, '12:00': 25, '15:00': 20, '18:00': 10, '21:00': 8 },
     { month: 'Feb', '00:00': 7, '03:00': 3, '06:00': 5, '09:00': 20, '12:00': 30, '15:00': 25, '18:00': 15, '21:00': 10 },
@@ -175,22 +177,43 @@ export default function Admin() {
 
   useEffect(() => {
     if (user?.isAdmin) {
-      const allUsers = getAllUsers();
-      setUsers(allUsers);
-      const allLogs = getClaimLogs();
-      setLogs(allLogs);
-      const storedBlacklist = JSON.parse(localStorage.getItem("bottlecaps_blacklist") || "[]");
-      setBlacklist(storedBlacklist);
-      const savedClaimImage = localStorage.getItem("bottlecaps_claim_image");
-      if (savedClaimImage) {
-        setClaimImage(savedClaimImage);
-      }
-      if (allUsers && allUsers.length > 0) {
-        const activeCount = allUsers.filter(u => u.lastClaim !== null).length;
-        setActiveUserPercentage((activeCount / allUsers.length) * 100);
-      } else {
-        setActiveUserPercentage(0);
-      }
+      // Function to load all data
+      const loadData = () => {
+        if (getAllUsers) {
+          const allUsers = getAllUsers();
+          console.log("Admin: Loading users:", allUsers);
+          setUsers(allUsers);
+
+          if (allUsers && allUsers.length > 0) {
+            const activeCount = allUsers.filter(u => u.lastClaim !== null).length;
+            setActiveUserPercentage((activeCount / allUsers.length) * 100);
+          } else {
+            setActiveUserPercentage(0);
+          }
+        }
+
+        if (getClaimLogs) {
+          const allLogs = getClaimLogs();
+          setLogs(allLogs);
+        }
+
+        const storedBlacklist = JSON.parse(localStorage.getItem("bottlecaps_blacklist") || "[]");
+        setBlacklist(storedBlacklist);
+
+        const savedClaimImage = localStorage.getItem("bottlecaps_claim_image");
+        if (savedClaimImage) {
+          setClaimImage(savedClaimImage);
+        }
+      };
+
+      // Load data immediately
+      loadData();
+
+      // Set up a refresh interval to keep the data updated
+      const refreshInterval = setInterval(loadData, 2000);
+
+      // Clean up the interval on component unmount
+      return () => clearInterval(refreshInterval);
     }
   }, [user, getAllUsers, getClaimLogs]);
 
@@ -247,13 +270,22 @@ export default function Admin() {
     }
   };
 
+  const handleClaimAmountUpdate = () => {
+    if (updateClaimAmount && newClaimAmount >= 1) {
+      updateClaimAmount(newClaimAmount);
+      toast.success(`Claim amount updated to ${newClaimAmount}`);
+    } else {
+      toast.error("Please enter a valid claim amount (minimum 1)");
+    }
+  };
+
   const handleApprovePasswordReset = (id: string) => {
     if (confirmPasswordResetRequest) {
       confirmPasswordResetRequest(id);
-      toast.success("Password reset request approved. Please contact the user.");
+      toast.success("Password reset approved. User can now log in with their new password.");
     }
   };
-  
+
   // Function to render the expanded chart dialog content based on the chart type
   const renderExpandedChartContent = (chartType: string) => {
     switch (chartType) {
@@ -282,7 +314,7 @@ export default function Admin() {
             </p>
           </div>
         );
-        
+
       case 'userGrowth':
         return (
           <div className="space-y-6">
@@ -302,7 +334,7 @@ export default function Admin() {
             </p>
           </div>
         );
-        
+
       case 'streakDistribution':
         return (
           <div className="space-y-6">
@@ -323,8 +355,8 @@ export default function Admin() {
             <div className="flex flex-wrap gap-4 justify-center mt-4">
               {['1 day', '2-3 days', '4-7 days', '1-2 weeks', '2+ weeks'].map((name, index) => (
                 <div key={name} className="flex items-center">
-                  <div 
-                    className="w-3 h-3 mr-2 rounded-full" 
+                  <div
+                    className="w-3 h-3 mr-2 rounded-full"
                     style={{ backgroundColor: COLORS[index % COLORS.length] }}
                   ></div>
                   <span className="text-sm">{name}</span>
@@ -332,13 +364,13 @@ export default function Admin() {
               ))}
             </div>
             <p className="text-sm text-gray-500">
-              This chart shows how streak distributions have changed over time. 
-              Notice the decreasing trend of 1-day streaks and increasing trends for longer streaks, 
+              This chart shows how streak distributions have changed over time.
+              Notice the decreasing trend of 1-day streaks and increasing trends for longer streaks,
               indicating improved user retention.
             </p>
           </div>
         );
-        
+
       case 'claimTimeDistribution':
         return (
           <div className="space-y-6">
@@ -362,8 +394,8 @@ export default function Admin() {
             <div className="flex flex-wrap gap-4 justify-center mt-4">
               {['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'].map((hour, index) => (
                 <div key={hour} className="flex items-center">
-                  <div 
-                    className="w-3 h-3 mr-2 rounded-full" 
+                  <div
+                    className="w-3 h-3 mr-2 rounded-full"
                     style={{ backgroundColor: ['#f59e0b', '#d97706', '#b45309', '#92400e', '#78350f', '#92400e', '#b45309', '#d97706'][index] }}
                   ></div>
                   <span className="text-sm">{hour}</span>
@@ -376,7 +408,7 @@ export default function Admin() {
             </p>
           </div>
         );
-        
+
       default:
         return <div>No data available</div>;
     }
@@ -554,24 +586,27 @@ export default function Admin() {
                             <TableCell>{formatDate(user.createdAt)}</TableCell>
                             <TableCell>
                               <div className="flex gap-2">
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   size="sm"
-                                  onClick={() => navigate(`/user/${user.id}`)}
+                                  onClick={() => {
+                                    console.log("Navigating to user with ID:", user.id);
+                                    navigate(`/user/${user.id}`);
+                                  }}
                                 >
                                   View
                                 </Button>
                                 {blacklist.includes(user.username) ? (
-                                  <Button 
-                                    variant="outline" 
+                                  <Button
+                                    variant="outline"
                                     size="sm"
                                     onClick={() => removeFromBlacklist(user.username)}
                                   >
                                     Unblock
                                   </Button>
                                 ) : (
-                                  <Button 
-                                    variant="destructive" 
+                                  <Button
+                                    variant="destructive"
                                     size="sm"
                                     onClick={() => addToBlacklist(user.username)}
                                   >
@@ -608,6 +643,7 @@ export default function Admin() {
                       <TableRow>
                         <TableHead>Username</TableHead>
                         <TableHead>Result</TableHead>
+                        <TableHead>Amount</TableHead>
                         <TableHead>Timestamp</TableHead>
                         <TableHead>IP Address</TableHead>
                       </TableRow>
@@ -619,12 +655,15 @@ export default function Admin() {
                             <TableCell className="font-medium">{log.username}</TableCell>
                             <TableCell>
                               <span className={
-                                log.result === "success" 
+                                log.result === "success"
                                   ? "text-green-600"
                                   : "text-amber-600"
                               }>
                                 {log.result === "success" ? "Success" : "Already Claimed"}
                               </span>
+                            </TableCell>
+                            <TableCell>
+                              {log.result === "success" ? (log.amount || 1) : "-"}
                             </TableCell>
                             <TableCell>{formatDate(log.timestamp)}</TableCell>
                             <TableCell>{log.ip}</TableCell>
@@ -632,7 +671,7 @@ export default function Admin() {
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center py-4 text-gray-500">
+                          <TableCell colSpan={5} className="text-center py-4 text-gray-500">
                             No claim logs yet
                           </TableCell>
                         </TableRow>
@@ -659,7 +698,7 @@ export default function Admin() {
                   />
                   <Button type="submit">Add</Button>
                 </form>
-                
+
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
@@ -674,8 +713,8 @@ export default function Admin() {
                           <TableRow key={index}>
                             <TableCell className="font-medium">{username}</TableCell>
                             <TableCell>
-                              <Button 
-                                variant="destructive" 
+                              <Button
+                                variant="destructive"
                                 size="sm"
                                 onClick={() => removeFromBlacklist(username)}
                               >
@@ -694,14 +733,14 @@ export default function Admin() {
                     </TableBody>
                   </Table>
                 </div>
-                
+
                 <div className="mt-6 bg-amber-50 p-4 rounded-lg border border-amber-200">
                   <div className="flex items-start">
                     <Shield className="h-5 w-5 text-amber-600 mt-0.5 mr-2" />
                     <div>
                       <h3 className="font-semibold text-amber-800">Honeypot Detection</h3>
                       <p className="text-sm text-amber-700 mt-1">
-                        A hidden button is present on the claim page that is invisible to regular users 
+                        A hidden button is present on the claim page that is invisible to regular users
                         but may be activated by bots. Any activations will be logged here.
                       </p>
                     </div>
@@ -724,17 +763,17 @@ export default function Admin() {
                   <div>
                     <h3 className="font-medium mb-3">Current Claim Image</h3>
                     <div className="border rounded-lg overflow-hidden mb-4">
-                      <img 
-                        src={claimImage} 
-                        alt="Current claim image" 
-                        className="w-full max-h-[300px] object-contain" 
+                      <img
+                        src={claimImage}
+                        alt="Current claim image"
+                        className="w-full max-h-[300px] object-contain"
                       />
                     </div>
                     <p className="text-sm text-gray-500 mb-3">
                       This image will be displayed to users during the claim process.
                     </p>
                   </div>
-                  
+
                   <div>
                     <h3 className="font-medium mb-3">Update Image</h3>
                     <div className="space-y-4">
@@ -752,15 +791,15 @@ export default function Admin() {
                           Enter a full URL to an image (e.g., https://example.com/image.jpg)
                         </p>
                       </div>
-                      
-                      <Button 
+
+                      <Button
                         onClick={updateClaimImage}
                         className="w-full"
                       >
                         <Upload className="h-4 w-4 mr-2" />
                         Update Image
                       </Button>
-                      
+
                       <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
                         <h4 className="font-medium text-blue-800 mb-1">Image Guidelines</h4>
                         <ul className="list-disc list-inside text-sm text-blue-700 space-y-1">
@@ -820,10 +859,10 @@ export default function Admin() {
                           <Calendar className="h-5 w-5 text-blue-600 mr-2" />
                           Daily Claims - Historical Data
                         </DialogTitle>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 px-2" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2"
                           onClick={() => setOpenChartDialog(null)}
                         >
                           <ArrowLeft className="h-4 w-4 mr-1" /> Back
@@ -865,10 +904,10 @@ export default function Admin() {
                           <TrendingUp className="h-5 w-5 text-green-600 mr-2" />
                           User Growth - Historical Data
                         </DialogTitle>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 px-2" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2"
                           onClick={() => setOpenChartDialog(null)}
                         >
                           <ArrowLeft className="h-4 w-4 mr-1" /> Back
@@ -920,10 +959,10 @@ export default function Admin() {
                           <ChartPie className="h-5 w-5 text-purple-600 mr-2" />
                           Streak Distribution - Historical Data
                         </DialogTitle>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 px-2" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2"
                           onClick={() => setOpenChartDialog(null)}
                         >
                           <ArrowLeft className="h-4 w-4 mr-1" /> Back
@@ -965,10 +1004,10 @@ export default function Admin() {
                           <Clock className="h-5 w-5 text-amber-600 mr-2" />
                           Claim Time Distribution - Historical Data
                         </DialogTitle>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 px-2" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2"
                           onClick={() => setOpenChartDialog(null)}
                         >
                           <ArrowLeft className="h-4 w-4 mr-1" /> Back
@@ -1069,7 +1108,24 @@ export default function Admin() {
                     <TableBody>
                       {passwordResetRequests.map((req) => (
                         <TableRow key={req.id}>
-                          <TableCell>{req.username}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="link"
+                              className="p-0 h-auto font-medium text-blue-600 hover:text-blue-800"
+                              onClick={() => {
+                                // Find the user by username
+                                const user = users.find(u => u.username === req.username);
+                                if (user) {
+                                  console.log("Navigating to user with ID:", user.id);
+                                  navigate(`/user/${user.id}`);
+                                } else {
+                                  toast.error("User not found");
+                                }
+                              }}
+                            >
+                              {req.username}
+                            </Button>
+                          </TableCell>
                           <TableCell>{formatDate(req.requestedAt)}</TableCell>
                           <TableCell>
                             {req.approved ? (
@@ -1080,8 +1136,8 @@ export default function Admin() {
                           </TableCell>
                           <TableCell>
                             {!req.approved && (
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 onClick={() => handleApprovePasswordReset(req.id)}
                               >
                                 <MailCheck className="mr-1 h-4 w-4" />
@@ -1104,51 +1160,64 @@ export default function Admin() {
                 <CardTitle>System Settings</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 mb-6">
-                  <div className="flex items-start">
-                    <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 mr-2" />
-                    <div>
-                      <h3 className="font-semibold text-amber-800">Coming Soon</h3>
-                      <p className="text-sm text-amber-700 mt-1">
-                        The settings section will be available in the next update.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
+
+
                 <div className="space-y-6">
                   <div className="border rounded-lg p-4">
                     <h3 className="font-medium mb-3">Claim Settings</h3>
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="font-medium">Claim Amount</p>
+                        <p className="text-sm text-gray-500">Number of bottle caps per claim</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={newClaimAmount}
+                          onChange={(e) => setNewClaimAmount(parseInt(e.target.value) || 1)}
+                          min="1"
+                          className="w-24"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={handleClaimAmountUpdate}
+                        >
+                          <Gift className="h-4 w-4 mr-2" />
+                          Update
+                        </Button>
+                      </div>
+                    </div>
+
                     <div className="opacity-60 pointer-events-none">
                       <div className="flex items-center justify-between mb-3">
                         <div>
                           <p className="font-medium">Daily Reset Time</p>
                           <p className="text-sm text-gray-500">When the daily claim resets</p>
                         </div>
-                        <Input 
-                          type="time" 
-                          value="00:00" 
-                          className="w-32" 
-                          disabled 
+                        <Input
+                          type="time"
+                          value="00:00"
+                          className="w-32"
+                          disabled
                         />
                       </div>
-                      
+
                       <div className="flex items-center justify-between mb-3">
                         <div>
                           <p className="font-medium">Streak Reset</p>
                           <p className="text-sm text-gray-500">Reset streak if missed days</p>
                         </div>
-                        <Input 
-                          type="number" 
-                          value="1" 
+                        <Input
+                          type="number"
+                          value="1"
                           min="1"
-                          className="w-32" 
-                          disabled 
+                          className="w-32"
+                          disabled
                         />
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="border rounded-lg p-4">
                     <h3 className="font-medium mb-3">Security Settings</h3>
                     <div className="opacity-60 pointer-events-none">
@@ -1159,18 +1228,18 @@ export default function Admin() {
                         </div>
                         <Button disabled>Disabled</Button>
                       </div>
-                      
+
                       <div className="flex items-center justify-between mb-3">
                         <div>
                           <p className="font-medium">IP Rate Limiting</p>
                           <p className="text-sm text-gray-500">Max attempts per IP</p>
                         </div>
-                        <Input 
-                          type="number" 
-                          value="10" 
+                        <Input
+                          type="number"
+                          value="10"
                           min="1"
-                          className="w-32" 
-                          disabled 
+                          className="w-32"
+                          disabled
                         />
                       </div>
                     </div>

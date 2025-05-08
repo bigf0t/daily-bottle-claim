@@ -24,12 +24,16 @@ export interface AuthContextType {
   getClaimLogs?: () => any[];
   updateUserData?: (user: User) => void;
 
-  passwordResetRequests?: any[]; 
+  passwordResetRequests?: any[];
   confirmPasswordResetRequest?: (id: string) => void;
   submitPasswordResetRequest?: (username: string) => void;
 
   canUpdateUsername?: () => boolean;
   updateAccountInfo?: (updatedFields: Partial<User>) => void;
+
+  // Claim amount settings
+  currentClaimAmount?: number;
+  updateClaimAmount?: (amount: number) => void;
 }
 
 export interface ClaimLog {
@@ -37,4 +41,5 @@ export interface ClaimLog {
   result: string;
   timestamp: string;
   ip: string;
+  amount?: number; // Amount of bottle caps claimed
 }

@@ -2,10 +2,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User, AuthContextType } from "@/types/auth";
 import { isClaimAllowed, getCurrentUTCDate } from "@/utils/authUtils";
-import { 
-  getUserFromStorage, 
-  createLocalUsers, 
-  loginUser, 
+import { getClaimAmount, setClaimAmount } from "@/utils/claimUtils";
+import {
+  getUserFromStorage,
+  createLocalUsers,
+  loginUser,
   removeUserFromStorage,
   updateUserData as updateUser,
   getAllUsers as getUsers,
@@ -24,23 +25,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [passwordResetRequests, setPasswordResetRequests] = useState<any[]>([]);
+  const [currentClaimAmount, setCurrentClaimAmount] = useState<number>(getClaimAmount());
 
   // Initialize on first load
   useEffect(() => {
     // initializeSupabaseTables(); // Uncomment when SQL functions are created
-    
+
     // Use localStorage for user management now
     const loadUser = () => {
       const storedUser = getUserFromStorage();
       if (storedUser) {
         setUser(storedUser);
       }
-      
+
       createLocalUsers();
-      
+
       setIsLoading(false);
     };
-    
+
     loadUser();
 
     // Load password reset requests
@@ -65,37 +67,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     updateUser(updatedUser);
   };
 
-  // Claim function 
+  // Claim function
   const processClaim = () => {
     if (!user) return;
-    
+
     const now = getCurrentUTCDate();
     const wasAllowed = isClaimAllowed(user.lastClaim);
-    
+
     if (wasAllowed) {
       // Check if the streak should be continued or reset
       let newStreak = 1; // Default to 1 for first claim or reset streak
-      
+
       if (user.lastClaim) {
         const lastClaimDate = new Date(user.lastClaim);
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        
-        // If last claim was yesterday, increment streak
-        if (lastClaimDate.toISOString().split('T')[0] === yesterday.toISOString().split('T')[0]) {
+        const now = new Date();
+
+        // Calculate time difference in hours
+        const hoursDiff = (now.getTime() - lastClaimDate.getTime()) / (1000 * 60 * 60);
+
+        // If last claim was within 24 hours, continue streak
+        // This allows for multiple claims per day while maintaining streak logic
+        if (hoursDiff <= 24) {
           newStreak = user.streak + 1;
         }
       }
-      
+
+      // Get the current claim amount
+      let claimAmount = currentClaimAmount;
+
+      // Apply streak bonus - double rewards for 100+ day streak
+      if (newStreak >= 100) {
+        claimAmount = claimAmount * 2; // Double the claim amount
+      }
+
       const updatedUser = {
         ...user,
-        totalClaims: user.totalClaims + 1,
+        totalClaims: user.totalClaims + claimAmount,
         streak: newStreak,
         lastClaim: now
       };
-      
+
       // Log the claim attempt
-      logClaimAttempt(user.username, "success", now);
+      logClaimAttempt(user.username, "success", now, claimAmount);
       updateUserData(updatedUser);
       return "success";
     } else {
@@ -105,13 +118,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Update claim amount function for admins
+  const updateClaimAmount = (amount: number) => {
+    const validAmount = Math.max(1, amount);
+    setClaimAmount(validAmount);
+    setCurrentClaimAmount(validAmount);
+  };
+
   // Password reset request - users submit request
-  const submitPasswordResetRequest = (username: string) => {
+  const submitPasswordResetRequest = (username: string, newPassword: string) => {
     const req = {
       id: Date.now().toString(),
       username,
       requestedAt: getCurrentUTCDate(),
       approved: false,
+      newPassword: newPassword,
+      locked: true // Lock the account until approved
     };
     addPasswordResetRequest(req);
     setPasswordResetRequests((prev) => [...prev, req]);
@@ -159,6 +181,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     confirmPasswordResetRequest,
     canUpdateUsername,
     updateAccountInfo,
+    currentClaimAmount,
+    updateClaimAmount,
   };
 
   return (

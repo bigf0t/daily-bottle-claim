@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { BottleCap } from "@/components/BottleCap";
 import { UserPlus, Camera, ImageIcon } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { toast } from "sonner";
 
 export default function Register() {
   const [username, setUsername] = useState("");
@@ -67,13 +68,13 @@ export default function Register() {
       setError("");
       // Register the user with the profile picture
       await registerUser(username, ethAddress.trim(), password, email.trim() || undefined, profilePicture || undefined);
-      // Then login
-      await login(username, password);
-      navigate("/dashboard");
+      // Redirect to login page instead of auto-login
+      setIsLoading(false);
+      toast.success("Account created successfully! Please log in.");
+      navigate("/login");
     } catch (err: any) {
       setError(err.message || "Registration failed. Please try again.");
       console.error(err);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -109,8 +110,8 @@ export default function Register() {
                 )}
               </Avatar>
               <div className="flex items-center">
-                <Label 
-                  htmlFor="profilePicture" 
+                <Label
+                  htmlFor="profilePicture"
                   className="flex items-center gap-2 px-4 py-2 bg-bottlecap-blue text-white rounded-md cursor-pointer hover:bg-blue-600 transition-colors"
                 >
                   <Camera className="h-4 w-4" />

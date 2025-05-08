@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import UserDetails from "./pages/UserDetails";
+import Share from "./pages/Share";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/user/:id" element={<UserDetails />} />
+              <Route path="/share" element={<Share />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Router>

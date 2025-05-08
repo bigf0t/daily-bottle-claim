@@ -13,11 +13,9 @@ export const createLocalUsers = () => {
   const existingUsers = JSON.parse(localStorage.getItem("bottlecaps_users") || "[]");
   let usersUpdated = false;
 
-  // Remove any non-admin or test users to keep tracking realistic
-  const filteredUsers = existingUsers.filter((u: User) => u.isAdmin);
-
-  if (!filteredUsers.some((u: User) => u.username === ADMIN_USERNAME)) {
-    filteredUsers.push({
+  // Check if admin user exists, if not add it
+  if (!existingUsers.some((u: User) => u.username === ADMIN_USERNAME)) {
+    existingUsers.push({
       id: "admin-id",
       username: ADMIN_USERNAME,
       password: ADMIN_PASSWORD, // plain for demo; normally hash
@@ -30,8 +28,8 @@ export const createLocalUsers = () => {
     usersUpdated = true;
   }
 
-  if (usersUpdated || filteredUsers.length !== existingUsers.length) {
-    localStorage.setItem("bottlecaps_users", JSON.stringify(filteredUsers));
+  if (usersUpdated) {
+    localStorage.setItem("bottlecaps_users", JSON.stringify(existingUsers));
   }
 };
 
@@ -55,6 +53,17 @@ export const removeUserFromStorage = (): void => {
 export const loginUser = async (username: string, password: string): Promise<User> => {
   const existingUsers = JSON.parse(localStorage.getItem("bottlecaps_users") || "[]");
 
+  // Check if the user has a pending password reset request
+  const passwordRequests = getPasswordResetRequests();
+  const pendingRequest = passwordRequests.find(
+    req => req.username === username && !req.approved && req.locked
+  );
+
+  if (pendingRequest) {
+    // Block login due to pending password reset
+    throw new Error("Account locked pending password reset approval. Please contact an administrator.");
+  }
+
   // Check admin login first
   if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
     const adminUser: User = {
@@ -66,25 +75,37 @@ export const loginUser = async (username: string, password: string): Promise<Use
       isAdmin: true,
       createdAt: getCurrentUTCDate()
     };
+
+    // Make sure admin exists in the users list too
+    const adminExists = existingUsers.some(u => u.username === ADMIN_USERNAME);
+    if (!adminExists) {
+      existingUsers.push({
+        ...adminUser,
+        password: ADMIN_PASSWORD
+      });
+      localStorage.setItem("bottlecaps_users", JSON.stringify(existingUsers));
+    }
+
     saveUserToStorage(adminUser);
     return adminUser;
   }
-  
+
   // Find existing user by username
   const existingUser = existingUsers.find((u: User & { password?: string }) => u.username === username);
-  
+
   if (!existingUser) {
     throw new Error("No such username or invalid password.");
   }
-  
+
   // Check password matches stored password property (if missing, treat as invalid)
   if (!(existingUser as any).password || (existingUser as any).password !== password) {
     throw new Error("No such username or invalid password.");
   }
-  
-  // Successful login
-  saveUserToStorage(existingUser);
-  return existingUser;
+
+  // Successful login - create a clean user object without password
+  const { password: _, ...cleanUser } = existingUser;
+  saveUserToStorage(cleanUser as User);
+  return cleanUser as User;
 };
 
 // Updated registerUser to handle profile pictures and email
@@ -101,7 +122,8 @@ export const registerUser = async (
     throw new Error("Username already exists.");
   }
 
-  const newUser: User & { password: string } = {
+  // Create a user object with password for storage
+  const userWithPassword = {
     id: Date.now().toString(),
     username,
     totalClaims: 0,
@@ -109,35 +131,46 @@ export const registerUser = async (
     lastClaim: null,
     isAdmin: false,
     createdAt: getCurrentUTCDate(),
-    password,
+    password, // Include password for login
   };
 
+  // Add optional fields
   if (ethAddress && ethAddress.trim() !== "") {
-    newUser.ethAddress = ethAddress;
+    userWithPassword.ethAddress = ethAddress;
   }
 
   if (email && email.trim() !== "") {
-    newUser.email = email;
+    userWithPassword.email = email;
   }
 
   if (profilePicture) {
-    newUser.profilePicture = profilePicture;
+    userWithPassword.profilePicture = profilePicture;
   }
 
-  existingUsers.push(newUser);
+  // Store the user with password in localStorage
+  existingUsers.push(userWithPassword);
   localStorage.setItem("bottlecaps_users", JSON.stringify(existingUsers));
-  saveUserToStorage(newUser);
-  return newUser;
+
+  // Return a clean user object without password
+  const { password: _, ...cleanUser } = userWithPassword;
+  return cleanUser as User;
 };
 
 // Update user data including password if needed
 export const updateUserData = (updatedUser: User): void => {
+  // Save the clean user (without password) to the current session
   saveUserToStorage(updatedUser);
 
+  // Update the user in the users list while preserving the password
   const existingUsers = JSON.parse(localStorage.getItem("bottlecaps_users") || "[]");
-  const updatedUsers = existingUsers.map((u: User & { password?: string }) =>
-    u.id === updatedUser.id ? { ...u, ...updatedUser } : u
-  );
+  const updatedUsers = existingUsers.map((u: User & { password?: string }) => {
+    if (u.id === updatedUser.id) {
+      // Preserve the password from the existing user
+      return { ...u, ...updatedUser, password: u.password };
+    }
+    return u;
+  });
+
   localStorage.setItem("bottlecaps_users", JSON.stringify(updatedUsers));
 };
 
@@ -152,13 +185,19 @@ export const getClaimLogs = (): ClaimLog[] => {
 };
 
 // Log claim attempt
-export const logClaimAttempt = (username: string, result: string, timestamp: string): void => {
+export const logClaimAttempt = (
+  username: string,
+  result: string,
+  timestamp: string,
+  amount: number = 1
+): void => {
   const existingLogs = JSON.parse(localStorage.getItem("bottlecaps_logs") || "[]");
   existingLogs.push({
     username,
     result,
     timestamp,
-    ip: "127.0.0.1"
+    ip: "127.0.0.1",
+    amount: result === "success" ? amount : 0
   });
   localStorage.setItem("bottlecaps_logs", JSON.stringify(existingLogs));
 };
@@ -169,6 +208,8 @@ export interface PasswordResetRequest {
   username: string;
   requestedAt: string;
   approved: boolean;
+  newPassword: string;
+  locked: boolean; // Flag to indicate if the account is locked pending approval
 }
 
 export const getPasswordResetRequests = (): PasswordResetRequest[] => {
@@ -183,8 +224,42 @@ export const addPasswordResetRequest = (request: PasswordResetRequest): void => 
 
 export const approvePasswordResetRequest = (id: string): void => {
   const requests = getPasswordResetRequests();
-  const updated = requests.map(r =>
+  const request = requests.find(r => r.id === id);
+
+  if (!request) {
+    console.error("Password reset request not found:", id);
+    return;
+  }
+
+  // Mark the request as approved
+  const updatedRequests = requests.map(r =>
     r.id === id ? { ...r, approved: true } : r
   );
-  localStorage.setItem("bottlecaps_password_reset_requests", JSON.stringify(updated));
+  localStorage.setItem("bottlecaps_password_reset_requests", JSON.stringify(updatedRequests));
+
+  // Find the user and update their password
+  const users = getAllUsers();
+  const userIndex = users.findIndex((u: User & { password?: string }) => u.username === request.username);
+
+  if (userIndex === -1) {
+    console.error("User not found for password reset:", request.username);
+    return;
+  }
+
+  // Get the new password from the request
+  const newPassword = request.newPassword;
+
+  // Update the user's password in the users array
+  users[userIndex].password = newPassword;
+  localStorage.setItem("bottlecaps_users", JSON.stringify(users));
+
+  // Also update the current user's session if they're logged in
+  const currentUser = getUserFromStorage();
+  if (currentUser && currentUser.username === request.username) {
+    // Force logout the user if they're currently logged in
+    // This is a security measure - they'll need to log in with the new password
+    removeUserFromStorage();
+  }
+
+  console.log(`Password reset approved for ${request.username}. User can now log in with their new password.`);
 };
