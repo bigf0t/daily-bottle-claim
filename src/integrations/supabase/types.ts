@@ -44,14 +44,51 @@ export type Database = {
           },
         ]
       }
+      user_analytics: {
+        Row: {
+          claims_count: number | null
+          created_at: string | null
+          date: string
+          id: string
+          streak: number | null
+          user_id: string | null
+        }
+        Insert: {
+          claims_count?: number | null
+          created_at?: string | null
+          date: string
+          id?: string
+          streak?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          claims_count?: number | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          streak?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_analytics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
+          best_streak: number | null
           created_at: string
           email: string | null
           eth_address: string | null
           id: string
           is_admin: boolean | null
           last_claim: string | null
+          last_login: string | null
           password_hash: string
           profile_picture: string | null
           streak: number | null
@@ -61,12 +98,14 @@ export type Database = {
           username_updated_at: string | null
         }
         Insert: {
+          best_streak?: number | null
           created_at?: string
           email?: string | null
           eth_address?: string | null
           id?: string
           is_admin?: boolean | null
           last_claim?: string | null
+          last_login?: string | null
           password_hash: string
           profile_picture?: string | null
           streak?: number | null
@@ -76,12 +115,14 @@ export type Database = {
           username_updated_at?: string | null
         }
         Update: {
+          best_streak?: number | null
           created_at?: string
           email?: string | null
           eth_address?: string | null
           id?: string
           is_admin?: boolean | null
           last_claim?: string | null
+          last_login?: string | null
           password_hash?: string
           profile_picture?: string | null
           streak?: number | null
